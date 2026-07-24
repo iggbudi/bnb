@@ -1,0 +1,40 @@
+{
+  "name": "bnb-lp-analyzer",
+  "version": "1.0.0",
+  "description": "PancakeSwap V3 WBNB/USDT LP analyzer for BNB Smart Chain",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server-bnb.ts",
+    "build": "tsc",
+    "test": "tsx --test src/*.test.ts",
+    "test:coverage": "tsx --test --experimental-test-coverage --test-coverage-lines=75 --test-coverage-functions=75 --test-coverage-branches=65 src/*.test.ts",
+    "lint": "eslint src public",
+    "format": "prettier --write src public scripts README.md WIKI.md progress.md package.json tsconfig.json eslint.config.js .github",
+    "format:check": "prettier --check src public scripts README.md WIKI.md progress.md package.json tsconfig.json eslint.config.js .github",
+    "check": "npm run lint && npm run format:check && npm run build && npm run test:coverage",
+    "start": "node dist/server-bnb.js",
+    "background:start": "bash scripts/start-background.sh",
+    "background:stop": "bash scripts/stop-background.sh",
+    "background:status": "bash scripts/status-background.sh",
+    "background:logs": "tail -f logs/server.log"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^24.13.3",
+    "eslint": "^10.8.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.2",
+    "typescript-eslint": "^8.65.0"
+  }
+}

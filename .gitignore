@@ -1,0 +1,11 @@
+node_modules/
+dist/
+data/*.sqlite
+data/*.sqlite-*
+backups/*.sqlite
+backups/*.tmp
+run/
+.env
+.env.*
+!.env.example
+*.log

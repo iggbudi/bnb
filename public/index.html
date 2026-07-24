@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WBNB/USDT LP Analyzer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header>
+        <div class="pair-title">
+          <span class="token-badge token-bnb">WBNB</span>
+          <span class="pair-separator">/</span>
+          <span class="token-badge token-usdt">USDT</span>
+        </div>
+        <p>PancakeSwap V3 • BNB Smart Chain • Fee Tier 0.01%</p>
+      </header>
+
+      <!-- Price Display -->
+      <div class="price-display">
+        <div id="priceMain" class="price-main">Loading...</div>
+        <div id="priceChange" class="price-change"></div>
+        <div id="lastUpdate" class="refresh-info"></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="overview">📊 Overview</button>
+        <button class="tab" data-tab="simulator">💰 LP Simulator</button>
+        <button class="tab" data-tab="il">💧 IL Calculator</button>
+        <button class="tab" data-tab="agent">🧠 AI Agent</button>
+        <button class="tab" data-tab="position">🧭 Position</button>
+        <button class="tab" data-tab="learn">📖 Belajar</button>
+      </div>
+
+      <!-- Tab 1: Overview -->
+      <div class="tab-content active" id="tab-overview">
+        <div id="overviewContent">
+          <div class="loading">Mengambil data WBNB/USDT...</div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Simulator -->
+      <div class="tab-content" id="tab-simulator">
+        <div class="card">
+          <h3>💰 LP Simulator</h3>
+          <div class="info-box">
+            Masukkan jumlah investasi untuk estimasi full-range 50/50. Porsi fee dihitung dari liquidity aktif
+            PancakeSwap V3 on-chain dan sudah mengurangi protocol fee. Proyeksi tetap mengasumsikan volume 24
+            jam berlanjut; liquidity aktif, harga, dan volume dapat berubah.
+          </div>
+          <div class="simulator-input">
+            <input type="number" id="simAmount" value="50" min="5" step="5" placeholder="Investasi (US$)" />
+            <button class="btn" onclick="runSimulation()">📊 Simulate</button>
+          </div>
+          <div id="simulatorResult"></div>
+        </div>
+      </div>
+
+      <!-- Tab 3: IL Calculator -->
+      <div class="tab-content" id="tab-il">
+        <div class="card">
+          <h3>💧 Impermanent Loss Calculator</h3>
+          <div class="info-box">Hitung IL berdasarkan perubahan harga BNB.</div>
+          <div class="simulator-input">
+            <input type="number" id="ilFrom" value="550" placeholder="Harga awal (US$)" />
+            <input type="number" id="ilTo" value="600" placeholder="Harga baru (US$)" />
+            <input type="number" id="ilInvest" value="50" placeholder="Investasi (US$)" />
+            <button class="btn" onclick="calculateIL()">📊 Hitung</button>
+          </div>
+          <div id="ilResult"></div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Paper Agent -->
+      <div class="tab-content" id="tab-agent">
+        <div id="agentDashboard">
+          <div class="loading">Memuat paper agent...</div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Position Lifecycle -->
+      <div class="tab-content" id="tab-position">
+        <div id="positionDashboard">
+          <div class="loading">Memuat position lifecycle...</div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Learn -->
+      <div class="tab-content" id="tab-learn">
+        <div class="card">
+          <h3>🚀 Mulai di Sini: Dari Mana Profit LP?</h3>
+          <div class="info-box">
+            LP menghasilkan fee dari orang yang swap. Namun fee bukan profit bersih. Hasil LP baru menarik
+            jika fee cukup untuk menutup <strong>impermanent loss (IL)</strong> dan biaya transaksi.
+          </div>
+          <div class="summary-box">
+            <strong
+              >Keunggulan LP terhadap HOLD = fee − IL − gas − biaya swap yang benar-benar dilakukan</strong
+            >
+          </div>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">Net P&amp;L &gt; 0</div>
+              <div>Nilai posisi setelah seluruh biaya lebih besar daripada modal awal strategi.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">LP vs HOLD &gt; 0</div>
+              <div>LP lebih baik daripada hanya menyimpan BNB dan USDT 50/50.</div>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top: 15px; margin-bottom: 0">
+            <strong>Contoh sederhana:</strong> fee US$0,20 − IL US$0,08 − gas US$0,04 = keunggulan US$0,08
+            terhadap HOLD. Ini contoh cara menghitung, bukan janji hasil.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>💧 Dua Jalur Paper yang Dipakai Aplikasi</h3>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">Pool</div>
+              <div>WBNB/USDT PancakeSwap V3 dengan fee swap 0,01%.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Full-Range · US$100</div>
+              <div>Jalur konservatif lama untuk outcome sinyal 7 hari dan posisi paper 14 hari.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Agresif · Modal Awal US$50</div>
+              <div>Concentrated range sempit dengan target siklus +10% dan hard stop −5%.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Pemisahan Hasil</div>
+              <div>Statistik sinyal full-range tidak dicampur dengan P&amp;L portfolio agresif.</div>
+            </div>
+          </div>
+          <div class="error" style="margin-top: 15px">
+            Strategi agresif dapat lebih cepat menghasilkan fee, tetapi juga lebih cepat keluar range, berubah
+            menjadi satu token, membayar recenter, atau menyentuh stop-loss.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🔥 Cara Agent Memilih Range Agresif</h3>
+          <div class="info-box">
+            Agent memindai range <strong>±0,25% sampai ±2%</strong>, lalu memilih range terlebar yang masih
+            memproyeksikan minimal <strong>10% net per 30 hari</strong>. Perhitungan entry mengurangi protocol
+            fee, haircut fee 30%, gas, maksimal empat recenter, dan slippage 10 bps per recenter.
+          </div>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">Entry</div>
+              <div>Hanya saat coverage 24 jam ≥80% dan ada kandidat yang mencapai target setelah biaya.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Target Profit</div>
+              <div>Modal awal US$50 → take-profit jika nilai likuidasi net mencapai US$55.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Hard Stop</div>
+              <div>Posisi ditutup jika nilai likuidasi net mencapai US$47,50 atau lebih rendah.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Live Execution</div>
+              <div>Dinonaktifkan. Strategi concentrated ini hanya mengelola portfolio paper.</div>
+            </div>
+          </div>
+          <div class="summary-box">
+            Agresif berarti mengambil risiko yang dihitung untuk mengejar pertumbuhan—bukan mengabaikan biaya
+            atau membiarkan kerugian tanpa batas.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🎯 Kapan Agent Full-Range Memberi Sinyal ENTER?</h3>
+          <div class="info-box">
+            Agent tidak masuk hanya karena APR terlihat tinggi. Urutannya:
+            <ol style="margin-top: 10px; padding-left: 20px">
+              <li>Histori 7 hari harus memiliki coverage minimal <strong>80%</strong>.</li>
+              <li>Kondisi harga, volatilitas, TVL, dan aktivitas pool harus lolos safety gate.</li>
+              <li>
+                Fee 7 hari diproyeksikan konservatif dengan hanya memakai <strong>70%</strong> dari estimasi
+                dasar.
+              </li>
+              <li>Agent mengurangi stress IL serta gas entry dan exit.</li>
+              <li>
+                <code>ENTER_FULL_RANGE</code> hanya muncul jika perkiraan net edge 7 hari minimal
+                <strong>US$0,01</strong>.
+              </li>
+            </ol>
+          </div>
+          <div class="summary-box">
+            <strong>Kualitas data saat ini:</strong>
+            <span id="learnHistoryCoverage">Memuat coverage SQLite...</span>
+          </div>
+          <div class="info-box" style="margin-top: 15px; margin-bottom: 0">
+            <code>WAIT</code> berarti syarat belum cukup aman atau belum cukup menguntungkan. WAIT bukan
+            transaksi dan bukan kerugian.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🗓️ Lifecycle Full-Range Setelah Entry</h3>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">Saat Entry</div>
+              <div>Paper position dibuka sekali. Gas entry dicatat sekali, bukan setiap jam.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Hari 0–7</div>
+              <div>
+                <code>HOLD</code>. Fee dan nilai posisi dipantau; tidak ada rebalance dan tidak ada gas per
+                jam.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Hari ke-7</div>
+              <div>Review fee, IL, net P&amp;L, LP vs HOLD, dan kualitas data.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Hari ke-14</div>
+              <div>Paper position ditutup untuk evaluasi final. Setelah itu berlaku cooldown 24 jam.</div>
+            </div>
+          </div>
+          <div class="summary-box">
+            Maksimum satu posisi full-range aktif. Sinyal ENTER berikutnya tidak membuka posisi kedua selama
+            posisi pertama masih berjalan.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>⚡ Lifecycle Portfolio Agresif</h3>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">Setiap Jam</div>
+              <div>
+                Nilai token dihitung menurut kurva V3. Fee memakai delta <code>feeGrowthGlobal</code> on-chain
+                dan hanya dikreditkan sesuai occupancy in-range.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Keluar Range</div>
+              <div>Tunggu 60 menit. Konfirmasi ini mencegah recenter akibat sentuhan harga yang singkat.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Recenter</div>
+              <div>
+                Burn → ubah komposisi → mint range baru. Gas entry+exit dan slippage 10 bps dicatat sebagai
+                biaya.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Batas Aktivitas</div>
+              <div>Maksimal empat recenter per siklus; berhenti setelah dua siklus recenter merugi.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Exit</div>
+              <div>
+                Take-profit +10%, hard stop −5%, tidak ada range baru yang layak, atau review maksimal hari
+                ke-30.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Setelah Exit</div>
+              <div>
+                Modal net dikompaun ke siklus berikutnya setelah cooldown 6 jam; exit risiko memakai cooldown
+                24 jam.
+              </div>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top: 15px; margin-bottom: 0">
+            Saat out-of-range posisi tidak menerima fee dan biasanya menjadi 100% USDT atau 100% WBNB.
+            Recenter bukan profit: ia hanya memindahkan range dan selalu menambah biaya.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📊 Angka yang Perlu Dilihat Pemula</h3>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">Data Quality</div>
+              <div>
+                Harus <strong>VALID</strong>. Jika data tidak cukup, jangan percaya kesimpulan profit/rugi.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Fee Paper Teramati On-chain</div>
+              <div>
+                Estimasi posisi paper dari delta fee growth yang benar-benar terjadi, bukan sekadar proyeksi
+                volume. Interval out-of-range tidak mendapat fee.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Nilai Portfolio Jika Exit</div>
+              <div>Nilai token + fee − seluruh biaya yang sudah terjadi − estimasi exit sekarang.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Net P&amp;L Portfolio</div>
+              <div>
+                Perubahan satu modal yang benar-benar dikelola. Jangan samakan dengan penjumlahan sinyal
+                overlap.
+              </div>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top: 15px; margin-bottom: 0">
+            Baca dengan urutan: <strong>Data Quality → Net P&amp;L → LP vs HOLD → Fee dan IL.</strong> Jangan
+            mengambil keputusan dari APR atau fee saja.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🧠 Cara Membaca Outcome Agent</h3>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">Outcome 1h, 6h, 24h</div>
+              <div>Hanya diagnostik awal. Tidak diberi nilai benar/salah dan tidak masuk training.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Outcome 168h</div>
+              <div>Verdict utama untuk menilai apakah sinyal entry 7 hari benar secara ekonomi.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Safety Abstain</div>
+              <div>Agent sengaja WAIT karena data atau safety gate. Ini tidak dihitung sebagai salah.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Signal vs Portfolio</div>
+              <div>
+                Outcome full-range menilai sinyal per jam. Panel
+                <strong>Performa Paper Agresif</strong> menilai satu portfolio US$50 yang benar-benar dibuka.
+              </div>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top: 15px; margin-bottom: 0">
+            Akurasi ekonomi baru bermakna setelah ada outcome 168h. Model statistik menunggu minimal 336
+            verdict 168h dan tidak boleh melewati hard safety gate.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>⚠️ Hal yang Paling Sering Menghabiskan Profit</h3>
+          <div class="info-box">
+            <ol style="padding-left: 20px">
+              <li><strong>Pergerakan harga BNB:</strong> harga dapat menurunkan nilai dolar posisi.</li>
+              <li>
+                <strong>Impermanent loss:</strong> LP dapat tertinggal dari HOLD; perubahan harga 2×
+                menghasilkan IL sekitar 5,72% untuk model full-range 50/50.
+              </li>
+              <li><strong>Fee turun:</strong> volume tinggi hari ini belum tentu bertahan tujuh hari.</li>
+              <li><strong>Gas:</strong> dibayar saat entry dan exit. HOLD per jam tidak memiliki gas.</li>
+              <li>
+                <strong>Swap opsional:</strong> slippage hanya dihitung jika aset benar-benar di-swap,
+                misalnya WBNB ke USDT saat exit.
+              </li>
+              <li>
+                <strong>Risiko protokol dan aset:</strong> smart contract, data API, dan USDT tetap memiliki
+                risiko.
+              </li>
+            </ol>
+          </div>
+          <div class="summary-box">
+            Full-range mengurangi pekerjaan mengatur range. Concentrated agresif meningkatkan potensi fee per
+            modal, tetapi menambah risiko out-of-range, komposisi satu token, slippage, dan churn biaya.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>✅ Rutinitas Membaca Strategi Agresif</h3>
+          <div class="info-box">
+            <ol style="padding-left: 20px">
+              <li>
+                Buka AI Agent dan lihat <strong>Performa Paper Agresif · Portfolio Aktual</strong>, bukan
+                P&amp;L sinyal full-range.
+              </li>
+              <li>
+                Pastikan Data Quality <strong>VALID</strong>, lalu baca Nilai Portfolio Jika Exit dan Net
+                P&amp;L.
+              </li>
+              <li>
+                Periksa status IN RANGE. OUT berarti fee berhenti sampai harga kembali atau lifecycle
+                melakukan recenter.
+              </li>
+              <li>
+                Periksa fee paper teramati, total biaya, jumlah recenter, dan max drawdown. Profit kotor tanpa
+                biaya tidak cukup.
+              </li>
+              <li>
+                Nilai strategi dari beberapa siklus selesai/30 hari, bukan dari proyeksi target atau beberapa
+                jam pertama.
+              </li>
+              <li>
+                Pertimbangkan live hanya jika hasil aktual konsisten; concentrated live execution saat ini
+                tetap dinonaktifkan.
+              </li>
+            </ol>
+          </div>
+          <div class="error" style="margin-top: 15px">
+            Jangan pernah memasukkan seed phrase atau private key ke aplikasi ini. Server hanya menyiapkan
+            transaksi unsigned; external wallet tetap harus memeriksa dan menandatangani sendiri.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>🔐 Status Sistem Saat Ini</h3>
+          <div class="info-box">
+            <strong>SHADOW</strong> dan <strong>PAPER_ACTIVE</strong> di sini adalah gate lifecycle
+            full-range. Portfolio agresif berjalan pada ledger paper terpisah. Keduanya tetap simulasi dan
+            tidak otomatis membuka live execution.
+          </div>
+          <div id="learnLifecycleStatus" class="summary-box">
+            <strong>Memuat status shadow, paper, dan execution...</strong>
+          </div>
+          <div class="info-box" style="margin-top: 15px; margin-bottom: 0">
+            Tahap teknis A–G sudah tersedia untuk pencatatan, lifecycle, dashboard, verifikasi NFT, unsigned
+            exit, shadow validation, dan aktivasi paper. Status adapter <strong>READY</strong> hanya berarti
+            alat tersedia; transaksi tetap terkunci sampai semua gate lulus.
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>📚 Istilah Singkat</h3>
+          <div class="metrics-grid">
+            <div class="metric">
+              <div class="metric-label">TVL</div>
+              <div>Total nilai aset di pool.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Volume/TVL</div>
+              <div>Seberapa aktif modal di pool dipakai untuk swap.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">APR</div>
+              <div>Fee terbaru yang dianualisasi; bukan profit yang dijamin.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">IL</div>
+              <div>Ketertinggalan LP dibanding HOLD akibat perubahan harga.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Net Edge</div>
+              <div>Perkiraan keunggulan LP setelah IL dan biaya.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Full-range</div>
+              <div>Likuiditas aktif di seluruh rentang harga dan tidak perlu rebalance berkala.</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Concentrated</div>
+              <div>
+                Likuiditas ditempatkan pada range sempit; fee lebih padat saat in-range dan nol saat
+                out-of-range.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Recenter</div>
+              <div>
+                Memindahkan posisi ke range baru setelah konfirmasi out-of-range; selalu menambah
+                gas/slippage.
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Occupancy</div>
+              <div>Persentase waktu harga berada di dalam range dan posisi berhak menerima fee.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div
+            class="error"
+            style="
+              color: var(--warning);
+              border-color: var(--warning);
+              background: rgba(245, 158, 11, 0.1);
+              margin-bottom: 0;
+            "
+          >
+            <strong
+              >Tujuan aplikasi adalah mencari kondisi ketika fee dapat mengalahkan perubahan nilai token dan
+              seluruh biaya—bukan menjamin profit.</strong
+            >
+            Untuk strategi agresif, gunakan P&amp;L portfolio aktual selama beberapa siklus/30 hari sebagai
+            bukti; proyeksi 10% bukan hasil nyata.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/api-client.js" defer></script>
+    <script src="/dashboard.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,198 @@
+# Progress dan Pekerjaan Berikutnya
+
+Terakhir diperbarui: 2026-07-24 UTC
+
+## Status Saat Ini
+
+- Server sehat di port `3001`.
+- Build TypeScript lulus.
+- Test: **125/125 lulus**.
+- `npm audit --omit=dev`: 0 vulnerability.
+- SQLite `quick_check`: `ok`.
+- Live execution tetap **disabled**.
+- Emergency kill switch tetap **engaged**.
+- Lifecycle full-range aktif pada strategi `lifecycle-v2.1`.
+- Accounting fee full-range memakai `v3-fee-growth-v1`.
+- Shadow validation baru berjalan pada **run ID 2** dan belum qualified.
+
+## P0 — Selesai
+
+- [x] Mengganti forecast fee full-range dari pro-rata TVL menjadi share active liquidity V3.
+- [x] Mengganti fee outcome dan paper position menjadi delta `feeGrowthGlobal` × liquidity posisi.
+- [x] Menyimpan checkpoint block, fee growth, liquidity, dan accounting version.
+- [x] Menjadikan sinyal `baseline-v1.0` dan `lifecycle-v2.0` hanya diagnostik.
+- [x] Membatasi Shadow qualification ke `lifecycle-v2.1`/model kompatibel dan `v3-fee-growth-v1`.
+- [x] Membatalkan posisi paper legacy yang tidak mempunyai checkpoint valid.
+- [x] Reset Shadow run lama dan memulai run ID 2 secara teraudit.
+- [x] Menyimpan immutable mint plan dan mengikat receipt ke proposal, wallet, block, calldata, amount, serta deadline.
+- [x] Menyimpan immutable exit plan dan memverifikasi receipt sesuai urutan transaksi.
+- [x] Menutup posisi LIVE dan menyimpan realized P&L secara atomik setelah exit terverifikasi.
+- [x] Membuat daily-loss gate membaca settlement loss aktual.
+- [x] Membuat backup sebelum migrasi:
+      `backups/bnb-viewer-pre-p0-2026-07-24T20-50-57-971Z.sqlite`.
+
+## P1 — Selesai (2026-07-24 UTC)
+
+### 1. Timeout dan single-flight request
+
+**Prioritas tertinggi P1.**
+
+- [x] Tambahkan `AbortSignal.timeout()` pada DexScreener.
+- [x] Buat single-flight untuk fetch DexScreener berdasarkan cache key.
+- [x] Buat single-flight untuk pembacaan state on-chain.
+- [x] Pastikan cache miss paralel tidak menghasilkan request upstream ganda.
+- [x] Tambahkan retry terbatas dengan exponential backoff dan jitter.
+- [x] Bedakan error timeout, HTTP upstream, RPC malformed, dan network failure.
+
+**File utama:**
+
+- `src/dexscreener.ts`
+- `src/server-bnb.ts`
+- `src/pancakeswap-v3-onchain.ts`
+
+**Kriteria selesai:**
+
+- Request upstream yang hang berhenti sesuai timeout.
+- Sepuluh request paralel hanya memicu satu request upstream per key.
+- Seluruh caller menerima hasil/error yang sama tanpa unhandled rejection.
+- Ada unit test timeout, deduplication, retry, dan pemulihan setelah error.
+
+### 2. Cegah scheduler overlap
+
+- [x] Tambahkan running lock untuk snapshot market.
+- [x] Tambahkan running lock untuk snapshot on-chain.
+- [x] Tambahkan running lock untuk paper lifecycle dan outcome evaluator.
+- [x] Catat status `RUNNING`, `LAST_SUCCESS`, `LAST_ERROR`, dan durasi siklus.
+- [x] Pastikan satu siklus lambat tidak membuat backlog timer.
+
+**File utama:** `src/server-bnb.ts`
+
+**Kriteria selesai:**
+
+- Tidak ada dua siklus scheduler sejenis yang berjalan bersamaan.
+- Siklus yang dilewati tercatat sebagai `ALREADY_RUNNING`, bukan error.
+- Status scheduler tersedia melalui endpoint health/readiness.
+
+### 3. Rate limiting dan perlindungan endpoint mahal
+
+- [x] Tambahkan rate limit global yang konservatif.
+- [x] Tambahkan limit lebih ketat untuk `POST /api/lp-analysis`.
+- [x] Tambahkan concurrency lock untuk request OpenAI.
+- [x] Batasi request RPC-heavy seperti `/api/onchain/pool` dan `/api/simulate`.
+- [x] Tambahkan body-size limit eksplisit pada `express.json()`.
+- [x] Jangan rate-limit exit risk-reduction sampai tidak dapat digunakan saat darurat; gunakan limit admin terpisah.
+
+**Kriteria selesai:**
+
+- Request berlebih mendapat HTTP `429` dan `Retry-After`.
+- Cache miss AI paralel tidak memicu biaya OpenAI ganda.
+- Endpoint exit admin tetap dapat digunakan secara aman saat emergency stop aktif.
+
+### 4. Deployment hardening
+
+- [x] Tambahkan security headers dengan Helmet atau middleware setara.
+- [x] Konfigurasikan allowlist CORS melalui environment variable.
+- [x] Tambahkan konfigurasi host listen eksplisit.
+- [x] Tambahkan `trust proxy` hanya jika reverse proxy benar-benar digunakan.
+- [x] Pastikan error API tidak membocorkan URL RPC, credential, atau response sensitif.
+- [x] Dokumentasikan mode localhost, LAN, dan reverse proxy.
+
+**Environment yang direncanakan:**
+
+```env
+HOST=127.0.0.1
+CORS_ALLOWED_ORIGINS=http://127.0.0.1:3001,http://localhost:3001
+API_RATE_LIMIT_PER_MINUTE=120
+AI_RATE_LIMIT_PER_15_MINUTES=4
+```
+
+### 5. Graceful shutdown dan health model
+
+- [x] Pisahkan `/api/health/live` dan `/api/health/ready`.
+- [x] Readiness harus memeriksa SQLite, scheduler, dan freshness data penting.
+- [x] Tangani `SIGTERM` dan `SIGINT`.
+- [x] Hentikan timer sebelum proses keluar.
+- [x] Tunggu request/siklus aktif selesai dengan timeout.
+- [x] Tutup seluruh koneksi SQLite secara tertib.
+
+**Kriteria selesai:**
+
+- `npm run background:stop` tidak memerlukan `SIGKILL` dalam kondisi normal.
+- Restart tidak meninggalkan scheduler ganda atau transaksi SQLite terbuka.
+
+### Verifikasi P1
+
+- Build dan **120/120 test** lulus, termasuk timeout/error classification, single-flight 10 caller, retry/recovery, scheduler overlap, rate limiter, concurrency gate, dan OpenAI lock.
+- Smoke test membuktikan security headers, model health terpisah, status scheduler, serta graceful `SIGTERM` tanpa `SIGKILL`.
+- Deployment aktif di `127.0.0.1:3001`; readiness seluruhnya hijau setelah startup.
+- CORS origin yang tidak diizinkan ditolak HTTP `400` tanpa stack/credential leak.
+- Live execution tetap `false`, execution mode `LOCKED`, kill switch engaged, dan broadcast tidak tersedia.
+- Shadow run tetap ID `2`, `errorHours = 0`, belum qualified.
+
+## Monitoring yang Harus Berjalan Setelah P1
+
+- [ ] Pantau Shadow run ID 2 setiap hari.
+- [ ] Pastikan `errorHours` tetap 0.
+- [ ] Pastikan posisi baru memakai `accountingVersion = v3-fee-growth-v1`.
+- [ ] Bandingkan fee increment paper dengan delta fee-growth on-chain.
+- [ ] Jangan mengaktifkan `PAPER_ACTIVE` sebelum satu posisi kompatibel selesai 14 hari.
+- [ ] Jangan mengaktifkan live execution meskipun adapter berstatus ready.
+
+Endpoint monitoring:
+
+```text
+GET /api/shadow/status
+GET /api/shadow/observations?limit=336
+GET /api/positions/status
+GET /api/agent/status
+GET /api/execution/status
+```
+
+## P2 — Selesai (2026-07-24 UTC)
+
+- [x] Pecah `src/server-bnb.ts` menjadi app, routes, services, dan schedulers.
+- [x] Hilangkan side effect `listen()`/timer ketika app di-import oleh test.
+- [x] Tambahkan HTTP integration test untuk route admin dan public.
+- [x] Pecah `public/index.html` menjadi HTML, CSS, API client, dan dashboard modules.
+- [x] Tambahkan migration framework/version table untuk schema SQLite.
+- [x] Tambahkan lint, formatting, coverage report, dan CI.
+
+### Verifikasi P2
+
+- `src/server-bnb.ts` sekarang hanya bootstrap listener/shutdown; aplikasi, system routes, service container, dan scheduler berada di modul terpisah.
+- Import `src/bnb-app.ts` tidak membuka port atau timer; integration test menjalankan app pada ephemeral port dan menutup seluruh store.
+- HTTP integration test memverifikasi public health/history/security headers, execution fail-closed, admin unauthorized, exit-admin unauthorized, dan CORS sanitization.
+- Frontend aktif dari empat aset terpisah: `index.html`, `styles.css`, `api-client.js`, dan `dashboard.js`.
+- SQLite mempunyai `schema_migrations` versi 1–2; migrasi idempotent dan rollback atomik diuji.
+- `npm run check` lulus: ESLint, Prettier, build, **125/125 test**, dan coverage threshold.
+- Coverage total: line **79,24%**, branch **69,86%**, function **79,84%**.
+- GitHub Actions CI tersedia di `.github/workflows/ci.yml`.
+- Backup pra-migrasi: `backups/bnb-viewer-pre-p2-2026-07-24T21-39-10-624Z.sqlite`.
+- Deployment sehat di `127.0.0.1:3001`; readiness memverifikasi schema migration versi 2.
+
+## P3 — Pekerjaan Berikutnya: Operasional dan Dokumentasi
+
+- [ ] Terapkan retention snapshot 30–90 hari.
+- [ ] Terapkan retention backup 14–30 file.
+- [ ] Tambahkan WAL checkpoint dan statistik ukuran database.
+- [ ] Sinkronkan `README.md`, `WIKI.md`, `.env.example`, dan status API.
+- [ ] Buat runbook restore backup dan recovery RPC outage.
+
+## Perintah Verifikasi
+
+```bash
+npm run build
+npm test
+npm audit --omit=dev
+npm run background:status
+curl -fsS http://127.0.0.1:3001/api/health/live
+curl -fsS http://127.0.0.1:3001/api/health/ready
+```
+
+## Aturan Keselamatan
+
+1. `LIVE_EXECUTION_ENABLED` tetap `false` selama P1/P2.
+2. Kill switch tetap engaged kecuali ada prosedur aktivasi terpisah yang disetujui.
+3. Jangan pernah menyimpan private key atau seed phrase di server.
+4. Exit yang mengurangi risiko harus tetap tersedia ketika entry terkunci.
+5. Setiap perubahan accounting harus membatalkan atau mereset bukti Shadow yang tidak kompatibel.

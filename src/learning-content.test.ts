@@ -1,0 +1,40 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+
+test('Belajar gives beginners a direct profit-oriented LP workflow', () => {
+  const html = readFileSync('public/index.html', 'utf8');
+  const dashboard = readFileSync('public/dashboard.js', 'utf8');
+  const frontend = `${html}\n${dashboard}`;
+
+  assert.match(html, /Mulai di Sini: Dari Mana Profit LP/);
+  assert.match(html, /Keunggulan LP terhadap HOLD = fee − IL − gas/);
+  assert.match(html, /Net P&amp;L &gt; 0/);
+  assert.match(html, /LP vs HOLD &gt; 0/);
+  assert.match(html, /Kapan Agent Full-Range Memberi Sinyal ENTER/);
+  assert.match(html, /Histori 7 hari harus memiliki coverage minimal <strong>80%/);
+  assert.match(html, /perkiraan net edge 7 hari minimal\s*<strong>US\$0,01/);
+  assert.match(html, /Lifecycle Full-Range Setelah Entry/);
+  assert.match(html, /HOLD per jam tidak memiliki gas/);
+  assert.match(html, /Outcome 1h, 6h, 24h[\s\S]*?Hanya diagnostik awal/);
+  assert.match(html, /Outcome 168h[\s\S]*?Verdict utama/);
+  assert.match(html, /Rutinitas Membaca Strategi Agresif/);
+  assert.match(html, /SHADOW[\s\S]*?PAPER_ACTIVE/);
+  assert.match(html, /gate lifecycle\s*full-range/);
+  assert.match(html, /seed phrase atau private key/);
+  assert.match(html, /bukan menjamin profit/);
+  assert.match(html, /Cara Agent Memilih Range Agresif/);
+  assert.match(html, /±0,25% sampai ±2%/);
+  assert.match(html, /Modal awal US\$50 → take-profit[\s\S]*?US\$55/);
+  assert.match(html, /Hard Stop[\s\S]*?US\$47,50/);
+  assert.match(html, /Lifecycle Portfolio Agresif/);
+  assert.match(html, /feeGrowthGlobal/);
+  assert.match(html, /Tunggu 60 menit/);
+  assert.match(html, /Maksimal empat recenter/);
+  assert.match(html, /dua siklus recenter merugi/);
+  assert.match(html, /P&amp;L portfolio aktual selama beberapa siklus\/30 hari/);
+  assert.match(html, /id="learnLifecycleStatus"/);
+  assert.match(html, /id="learnHistoryCoverage"/);
+  assert.match(frontend, /async function loadLearningLifecycleStatus/);
+  assert.match(frontend, /fetchApi\('\/api\/agent\/aggressive-performance'\)/);
+});
