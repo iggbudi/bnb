@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { backup, DatabaseSync } from 'node:sqlite';
 
@@ -58,6 +58,23 @@ export interface ChartPoint {
   tvl: number;
   volume24h: number;
   estimatedAPR: number;
+}
+
+export interface WalCheckpointResult {
+  busy: number;
+  logFrames: number;
+  checkpointedFrames: number;
+}
+
+export interface DatabaseStorageStats {
+  databasePath: string;
+  mainBytes: number;
+  walBytes: number;
+  shmBytes: number;
+  totalBytes: number;
+  pageCount: number;
+  pageSize: number;
+  freePages: number;
 }
 
 const DEFAULT_DATABASE_PATH = resolve(process.env.SQLITE_PATH || 'data/bnb-viewer.sqlite');
@@ -391,13 +408,13 @@ export class SnapshotStore {
     };
   }
 
-  async createBackup(backupDirectory = resolve('backups')): Promise<string> {
+  async createBackup(backupDirectory = resolve('backups'), now = new Date()): Promise<string> {
     if (this.databasePath === ':memory:') {
       throw new Error('Cannot back up an in-memory database');
     }
 
     mkdirSync(backupDirectory, { recursive: true });
-    const date = new Date().toISOString().slice(0, 10);
+    const date = now.toISOString().slice(0, 10);
     const target = resolve(backupDirectory, `bnb-viewer-${date}.sqlite`);
     const temporary = `${target}.tmp`;
     if (existsSync(temporary)) rmSync(temporary);
@@ -405,6 +422,48 @@ export class SnapshotStore {
     await backup(this.database, temporary);
     renameSync(temporary, target);
     return target;
+  }
+
+  deleteOlderThan(retentionDays: number, now = new Date()): number {
+    if (!Number.isFinite(retentionDays) || retentionDays <= 0) {
+      throw new Error('Snapshot retention days must be positive');
+    }
+    const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1_000).toISOString();
+    const result = this.database.prepare('DELETE FROM pool_snapshots WHERE captured_at < ?').run(cutoff);
+    return Number(result.changes);
+  }
+
+  checkpointWal(mode: 'PASSIVE' | 'TRUNCATE' = 'PASSIVE'): WalCheckpointResult {
+    const row = this.database.prepare(`PRAGMA wal_checkpoint(${mode})`).get() as Record<string, number>;
+    return {
+      busy: Number(row.busy ?? 0),
+      logFrames: Number(row.log ?? 0),
+      checkpointedFrames: Number(row.checkpointed ?? 0),
+    };
+  }
+
+  getStorageStats(): DatabaseStorageStats {
+    const pragmaNumber = (name: 'page_count' | 'page_size' | 'freelist_count'): number => {
+      const row = this.database.prepare(`PRAGMA ${name}`).get() as Record<string, number>;
+      return Number(row[name] ?? 0);
+    };
+    const size = (path: string): number => {
+      if (this.databasePath === ':memory:' || !existsSync(path)) return 0;
+      return statSync(path).size;
+    };
+    const mainBytes = size(this.databasePath);
+    const walBytes = size(`${this.databasePath}-wal`);
+    const shmBytes = size(`${this.databasePath}-shm`);
+    return {
+      databasePath: this.databasePath === ':memory:' ? ':memory:' : this.databasePath,
+      mainBytes,
+      walBytes,
+      shmBytes,
+      totalBytes: mainBytes + walBytes + shmBytes,
+      pageCount: pragmaNumber('page_count'),
+      pageSize: pragmaNumber('page_size'),
+      freePages: pragmaNumber('freelist_count'),
+    };
   }
 
   count(): number {

@@ -47,6 +47,13 @@ test('public routes expose liveness, readiness model, history, and security head
   assert.equal(history.body.data.totalRows, 0);
   assert.equal(history.body.data.periods.length, 4);
 
+  const storage = await request('/api/operations/storage');
+  assert.equal(storage.response.status, 200);
+  assert.equal(storage.body.data.policy.snapshotRetentionDays, 60);
+  assert.equal(storage.body.data.policy.backupRetentionFiles, 21);
+  assert.ok(storage.body.data.database.mainBytes > 0);
+  assert.equal('databasePath' in storage.body.data.database, false);
+
   const execution = await request('/api/execution/status');
   assert.equal(execution.response.status, 200);
   assert.equal(execution.body.data.liveExecutionEnabled, false);

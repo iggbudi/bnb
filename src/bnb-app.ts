@@ -17,6 +17,7 @@ import { calculateIL, calculateLPInvestmentProjection } from './amm.js';
 import { registerFrontendAndErrorRoutes, registerHealthRoutes } from './bnb-routes.js';
 import { BnbServiceContainer } from './bnb-services.js';
 import { APPLICATION_SCHEMA_VERSION } from './schema-migrations.js';
+import { StorageMaintenanceService } from './storage-maintenance.js';
 import type { PaperAgentDecision } from './agent-store.js';
 import {
   AGGRESSIVE_INITIAL_CAPITAL_USD,
@@ -143,6 +144,7 @@ const {
   shadowModeStore,
   lifecycleActivationStore,
 } = services;
+const storageMaintenance = new StorageMaintenanceService(snapshotStore, onchainStore, BACKUP_DIR);
 
 function getLifecycleCompatibleActiveModel() {
   const active = agentStore.getActiveModel();
@@ -1303,7 +1305,13 @@ function getReadiness(now = Date.now()) {
   );
   const failedCritical = schedulers.filter(
     status =>
-      ['market-snapshot', 'onchain-snapshot', 'paper-lifecycle', 'paper-outcome'].includes(status.name) &&
+      [
+        'market-snapshot',
+        'onchain-snapshot',
+        'paper-lifecycle',
+        'paper-outcome',
+        'storage-maintenance',
+      ].includes(status.name) &&
       status.lastErrorAt &&
       (!status.lastSuccessAt || status.lastErrorAt > status.lastSuccessAt)
   );
@@ -1420,6 +1428,14 @@ app.get('/api/history/stats', (req, res) => {
       totalRows: snapshotStore.count(),
       periods: snapshotStore.getStatistics(),
     },
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/operations/storage', (_req, res) => {
+  res.json({
+    success: true,
+    data: storageMaintenance.getStatus(),
     timestamp: new Date().toISOString(),
   });
 });
@@ -2662,9 +2678,11 @@ registerFrontendAndErrorRoutes(app, join(__dirname, '../public'), safeErrorMessa
 // 📌 Runtime hooks (no listen/timer side effects)
 // ============================================
 
-async function createDailyBackup(): Promise<void> {
-  const path = await snapshotStore.createBackup(BACKUP_DIR);
-  console.log(`💾 SQLite backup ready: ${path}`);
+async function runStorageMaintenance(): Promise<void> {
+  const result = await storageMaintenance.run();
+  console.log(
+    `💾 Storage maintenance: backup=${result.backupCreated}, marketDeleted=${result.deletedMarketSnapshots}, onchainDeleted=${result.deletedOnchainSnapshots}, backupsDeleted=${result.deletedDailyBackups.length}, walBusy=${result.walCheckpoint.busy}`
+  );
 }
 
 function closeStores(): void {
@@ -2684,7 +2702,7 @@ export const bnbRuntime = {
     evaluateDuePaperDecisions,
     runLearningCycle,
     runReflectionCycle,
-    createDailyBackup,
+    runStorageMaintenance,
   },
   setShuttingDown(value: boolean) {
     shuttingDown = value;

@@ -164,6 +164,7 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 | `/api/history?hours=24&limit=1440`                        | Histori mentah dari SQLite                                                           |
 | `/api/history/chart?hours=24&points=240`                  | Histori yang di-downsample untuk grafik                                              |
 | `/api/history/stats`                                      | Statistik agregat 1h, 24h, 7d, dan 30d                                               |
+| `/api/operations/storage`                                 | Policy retention, WAL checkpoint terakhir, ukuran SQLite, dan statistik backup       |
 | `/api/onchain/pool`                                       | State pool V3, range tick, fee growth, dan estimasi gas                              |
 | `/api/onchain/history?limit=100`                          | Histori snapshot read-only on-chain                                                  |
 | `/api/simulate?amount=10000`                              | Simulasi LP                                                                          |
@@ -215,7 +216,18 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 - **Reflection engine:** OpenAI structured output untuk kritik verdict entry 168h; maksimal tiga outcome pending diproses per siklus per jam
 - **On-chain adapter:** Raw JSON-RPC/ABI read-only tanpa dependency Web3, cache 1 menit, snapshot 5 menit
 - **Execution control:** SQLite emergency stop/proposal/audit, constant-time admin token comparison, default locked, unsigned Pancake V3 full-range calldata, tanpa wallet signer
-- **Backup:** Backup SQLite konsisten dibuat saat startup dan setiap 24 jam di `backups/`; history tidak dihapus otomatis
+- **Storage maintenance:** Saat startup dan setiap 24 jam membuat backup konsisten, menghapus market/on-chain snapshot di luar retention 30–90 hari, menjalankan WAL checkpoint `PASSIVE`, dan mempertahankan 14–30 backup harian. Backup audit `pre-*` tidak dipangkas otomatis.
+
+## 🛠️ Retention dan Recovery
+
+Default operasional:
+
+```env
+SNAPSHOT_RETENTION_DAYS=60
+BACKUP_RETENTION_FILES=21
+```
+
+Nilai snapshot dibatasi 30–90 hari dan jumlah backup harian dibatasi 14–30 file. Status aktual tersedia di `GET /api/operations/storage` dan menjadi bagian dari telemetry scheduler/readiness. Prosedur restore SQLite serta recovery BSC RPC outage tersedia di [`docs/runbook-storage-and-rpc-recovery.md`](docs/runbook-storage-and-rpc-recovery.md).
 
 ## 📊 Data Source
 

@@ -95,6 +95,17 @@ export class OnchainStore {
     return row ? this.mapRow(row) : null;
   }
 
+  deleteOlderThan(retentionDays: number, now = new Date()): number {
+    if (!Number.isFinite(retentionDays) || retentionDays <= 0) {
+      throw new Error('On-chain snapshot retention days must be positive');
+    }
+    const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1_000).toISOString();
+    const result = this.database
+      .prepare('DELETE FROM onchain_pool_snapshots WHERE captured_at < ?')
+      .run(cutoff);
+    return Number(result.changes);
+  }
+
   count(): number {
     const row = this.database.prepare(`SELECT COUNT(*) AS count FROM onchain_pool_snapshots`).get() as {
       count: number;

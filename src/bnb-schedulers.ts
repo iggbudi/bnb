@@ -37,7 +37,7 @@ export function startBnbSchedulers(runtime: BnbRuntime): BnbSchedulerController 
   schedule('paper-outcome', 'Paper outcome evaluator', 60_000, tasks.evaluateDuePaperDecisions);
   schedule('learning', 'Learning cycle', 60 * 60_000, tasks.runLearningCycle);
   schedule('reflection', 'Agent reflection cycle', 60 * 60_000, tasks.runReflectionCycle);
-  schedule('sqlite-backup', 'SQLite backup', 24 * 60 * 60_000, tasks.createDailyBackup);
+  schedule('storage-maintenance', 'Storage maintenance', 24 * 60 * 60_000, tasks.runStorageMaintenance);
 
   run('market-snapshot', 'Initial snapshot', tasks.capturePoolSnapshot);
   run('onchain-snapshot', 'Initial on-chain snapshot', tasks.captureOnchainPoolState);
@@ -50,7 +50,7 @@ export function startBnbSchedulers(runtime: BnbRuntime): BnbSchedulerController 
   run('paper-outcome', 'Initial paper outcome evaluator', tasks.evaluateDuePaperDecisions);
   run('learning', 'Initial learning cycle', tasks.runLearningCycle);
   run('reflection', 'Initial agent reflection', tasks.runReflectionCycle);
-  run('sqlite-backup', 'Initial SQLite backup', tasks.createDailyBackup);
+  run('storage-maintenance', 'Initial storage maintenance', tasks.runStorageMaintenance);
 
   return {
     stop() {

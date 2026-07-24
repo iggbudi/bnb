@@ -20,7 +20,7 @@ Fee tier diverifikasi langsung melalui fungsi `fee()` pada contract pool. Pool d
 - Overview harga BNB, TVL, volume, fee, APR, transaksi, dan komposisi pool.
 - Snapshot SQLite setiap menit, walaupun browser ditutup.
 - Grafik dan statistik histori 1 jam, 24 jam, 7 hari, dan 30 hari.
-- Backup SQLite saat startup dan setiap 24 jam.
+- Maintenance storage saat startup dan setiap 24 jam: backup SQLite, retention snapshot, WAL checkpoint, dan retention backup.
 - Simulator full-range 50/50 dan kalkulator impermanent loss.
 - Analisis opsional GPT-5.6 Sol dengan reasoning medium dan konteks histori.
 - Portfolio paper concentrated agresif bermodal awal US$50 dengan target +10%, stop −5%, fee on-chain, recenter terkendali, dan P&L aktual non-overlap.
@@ -75,6 +75,7 @@ Base URL default: `http://localhost:3001`
 | GET    | `/api/history?hours=24&limit=1440`       | Histori mentah                                   |
 | GET    | `/api/history/chart?hours=24&points=240` | Histori downsampled                              |
 | GET    | `/api/history/stats`                     | Statistik 1h/24h/7d/30d                          |
+| GET    | `/api/operations/storage`                | Retention, ukuran DB, WAL, dan backup            |
 | GET    | `/api/simulate?amount=50`                | Estimasi LP full-range                           |
 | GET    | `/api/il?from=550&to=600&invest=50`      | Kalkulator IL                                    |
 | GET    | `/api/agent/high-risk-plan`              | Proyeksi range agresif saat ini                  |
@@ -119,7 +120,7 @@ Backup default:
 backups/bnb-viewer-YYYY-MM-DD.sqlite
 ```
 
-Tidak ada penghapusan history otomatis.
+Snapshot market dan on-chain di luar `SNAPSHOT_RETENTION_DAYS` dihapus otomatis setelah backup konsisten dibuat. Rentang konfigurasi yang diterima 30–90 hari. WAL menjalankan checkpoint `PASSIVE`; backup harian dibatasi 14–30 file, sedangkan backup audit bernama `pre-*` dipertahankan.
 
 ## Konfigurasi
 
@@ -128,6 +129,8 @@ OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.6-sol
 SQLITE_PATH=data/bnb-viewer.sqlite
 SQLITE_BACKUP_DIR=backups
+SNAPSHOT_RETENTION_DAYS=60
+BACKUP_RETENTION_FILES=21
 PORT=3001
 AGGRESSIVE_PAPER_ENABLED=true
 ```
@@ -155,6 +158,10 @@ npm run background:stop
 ```
 
 Boot script: `~/.termux/boot/start-bnb-viewer.sh`.
+
+## Runbook Operasional
+
+Restore backup SQLite, rollback restore, pemeriksaan retention, dan recovery BSC RPC outage didokumentasikan di [`docs/runbook-storage-and-rpc-recovery.md`](docs/runbook-storage-and-rpc-recovery.md).
 
 ## Batasan
 

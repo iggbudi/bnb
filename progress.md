@@ -6,7 +6,7 @@ Terakhir diperbarui: 2026-07-24 UTC
 
 - Server sehat di port `3001`.
 - Build TypeScript lulus.
-- Test: **125/125 lulus**.
+- Test: **129/129 lulus**.
 - `npm audit --omit=dev`: 0 vulnerability.
 - SQLite `quick_check`: `ok`.
 - Live execution tetap **disabled**.
@@ -170,13 +170,27 @@ GET /api/execution/status
 - Backup pra-migrasi: `backups/bnb-viewer-pre-p2-2026-07-24T21-39-10-624Z.sqlite`.
 - Deployment sehat di `127.0.0.1:3001`; readiness memverifikasi schema migration versi 2.
 
-## P3 — Pekerjaan Berikutnya: Operasional dan Dokumentasi
+## P3 — Selesai (2026-07-24 UTC)
 
-- [ ] Terapkan retention snapshot 30–90 hari.
-- [ ] Terapkan retention backup 14–30 file.
-- [ ] Tambahkan WAL checkpoint dan statistik ukuran database.
-- [ ] Sinkronkan `README.md`, `WIKI.md`, `.env.example`, dan status API.
-- [ ] Buat runbook restore backup dan recovery RPC outage.
+- [x] Terapkan retention snapshot 30–90 hari.
+- [x] Terapkan retention backup 14–30 file.
+- [x] Tambahkan WAL checkpoint dan statistik ukuran database.
+- [x] Sinkronkan `README.md`, `WIKI.md`, `.env.example`, dan status API.
+- [x] Buat runbook restore backup dan recovery RPC outage.
+
+### Verifikasi P3
+
+- Maintenance storage berjalan saat startup dan setiap 24 jam dengan lock scheduler `storage-maintenance`.
+- Policy aktif: snapshot market/on-chain **60 hari** dan maksimum **21 backup harian**; environment di-clamp ke 30–90 hari dan 14–30 file.
+- Backup dibuat sebelum retention snapshot; hanya backup harian bernama `bnb-viewer-YYYY-MM-DD.sqlite` yang dipangkas. Backup audit `pre-*` dilindungi.
+- WAL checkpoint `PASSIVE` sukses: `busy=0`, 6/6 frame ter-checkpoint pada deployment awal.
+- `GET /api/operations/storage` melaporkan policy, ukuran main/WAL/SHM, page/free-page, backup, dan hasil maintenance tanpa membocorkan path database.
+- `npm run check` lulus dengan **129/129 test**; coverage line **79,57%**, branch **70,24%**, function **80,57%**.
+- `npm audit --omit=dev`: 0 vulnerability; SQLite `quick_check`: `ok`.
+- `README.md`, `WIKI.md`, `.env.example`, dan endpoint API telah sinkron.
+- Runbook tersedia di `docs/runbook-storage-and-rpc-recovery.md`.
+- Backup pra-P3: `backups/bnb-viewer-pre-p3-2026-07-24T21-53-49-417Z.sqlite`.
+- Deployment sehat di `127.0.0.1:3001`; storage maintenance `lastError=null`, Shadow run 2 `errorHours=0`.
 
 ## Perintah Verifikasi
 
@@ -187,11 +201,12 @@ npm audit --omit=dev
 npm run background:status
 curl -fsS http://127.0.0.1:3001/api/health/live
 curl -fsS http://127.0.0.1:3001/api/health/ready
+curl -fsS http://127.0.0.1:3001/api/operations/storage
 ```
 
 ## Aturan Keselamatan
 
-1. `LIVE_EXECUTION_ENABLED` tetap `false` selama P1/P2.
+1. `LIVE_EXECUTION_ENABLED` tetap `false` selama P1/P2/P3 dan setelah deployment ini.
 2. Kill switch tetap engaged kecuali ada prosedur aktivasi terpisah yang disetujui.
 3. Jangan pernah menyimpan private key atau seed phrase di server.
 4. Exit yang mengurangi risiko harus tetap tersedia ketika entry terkunci.
