@@ -5,7 +5,7 @@ import test from 'node:test';
 test('agent dashboard exposes simulation-only directional performance separately from LP', () => {
   const html = readFileSync('public/index.html', 'utf8');
   const dashboard = readFileSync('public/dashboard.js', 'utf8');
-  const server = readFileSync('src/app/runtime.ts', 'utf8');
+  const server = readFileSync('src/features/directional-paper/http/routes.ts', 'utf8');
 
   assert.match(html, /data-tab="directional"/);
   assert.match(html, /id="tab-directional"/);

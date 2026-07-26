@@ -12,7 +12,7 @@ Terakhir diperbarui: 2026-07-26 UTC.
 
 - [x] Fase 0 — baseline dan architecture guardrails.
 - [x] Fase 1 — composition root, konfigurasi, HTTP app factory, container, scheduler registration, dan process bootstrap telah dipindahkan ke `src/app/`.
-- [ ] Fase 2 — ekstraksi route per slice; berikutnya dimulai dengan `directional-paper`.
+- [ ] Fase 2 — sedang berjalan; route `directional-paper` selesai diekstrak (1 dari 8 slice), berikutnya `aggressive-paper`.
 - [ ] Fase 3–7 — belum dimulai.
 
 Catatan transisi: route dan orchestration lama sementara berada di `src/app/runtime.ts`. File root `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` hanya menjadi compatibility wrapper. Route akan keluar dari runtime secara bertahap pada Fase 2.
@@ -144,7 +144,8 @@ Kandidat file saat ini:
 - `directional-paper-store.ts`
 - `directional-paper-dashboard.test.ts`
 - `directional-backtest-cli.ts`
-- Bagian route/task/dashboard terkait dari `src/app/runtime.ts` dan `public/dashboard.js`
+- Route dan test HTTP sudah berada di `src/features/directional-paper/`
+- Task/orchestration masih berada di `src/app/runtime.ts`; dashboard masih di `public/dashboard.js`
 
 Public API slice:
 
@@ -466,16 +467,16 @@ Kriteria selesai:
 
 ### Fase 2 — Ekstrak Route per Slice
 
-Urutan yang disarankan dari risiko paling rendah:
+Urutan dan kemajuan ekstraksi:
 
-1. `directional-paper`
-2. `aggressive-paper`
-3. `operations`
-4. `market-data`
-5. `paper-agent`
-6. `learning`
-7. `lp-analysis`
-8. `lp-execution`
+- [x] `directional-paper`
+- [ ] `aggressive-paper`
+- [ ] `operations`
+- [ ] `market-data`
+- [ ] `paper-agent`
+- [ ] `learning`
+- [ ] `lp-analysis`
+- [ ] `lp-execution`
 
 Untuk setiap slice:
 

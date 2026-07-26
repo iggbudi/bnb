@@ -35,6 +35,7 @@ import { runDirectionalForwardCycle } from '../directional-paper-manager.js';
 import { DEFAULT_DIRECTIONAL_CONFIG, DIRECTIONAL_STRATEGY_VERSION } from '../directional-strategy.js';
 import { getPoolByAddress } from '../dexscreener.js';
 import { evaluateExecutionReadiness } from '../execution-control.js';
+import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
 import {
   estimateFullRangeFeeBetweenCheckpoints,
   FULL_RANGE_FEE_ACCOUNTING_VERSION,
@@ -565,46 +566,6 @@ function runAggressivePaperLifecycle(
     console.error('Aggressive paper lifecycle error:', error);
     return null;
   }
-}
-
-function getDirectionalPaperStatus() {
-  const forwardRun = directionalPaperStore.getLatestRun('FORWARD');
-  const backtestRun = directionalPaperStore.getLatestRun('BACKTEST');
-  const forwardPerformance = forwardRun ? directionalPaperStore.getPerformance(forwardRun.id) : null;
-  const backtestPerformance = backtestRun ? directionalPaperStore.getPerformance(backtestRun.id) : null;
-  const selectedRun = forwardRun ?? backtestRun;
-  return {
-    enabled: DIRECTIONAL_PAPER_ENABLED,
-    mode: 'SIMULATION_ONLY',
-    strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
-    marketSource: 'POOL_SNAPSHOT_CLOSE_PER_MINUTE',
-    limitations: {
-      nativePerpetualData: false,
-      intraminuteHighLowAvailable: false,
-      markIndexSpreadAvailable: false,
-      orderBookAvailable: false,
-      fundingRateSource: 'FIXED_SIMULATION_ASSUMPTION',
-    },
-    policy: {
-      initialCapitalUsd: DEFAULT_DIRECTIONAL_CONFIG.initialCapitalUsd,
-      leverage: DEFAULT_DIRECTIONAL_CONFIG.leverage,
-      marginFraction: DEFAULT_DIRECTIONAL_CONFIG.marginFraction,
-      takerFeeBps: DEFAULT_DIRECTIONAL_CONFIG.takerFeeBps,
-      slippageBps: DEFAULT_DIRECTIONAL_CONFIG.slippageBps,
-      maintenanceMarginRate: DEFAULT_DIRECTIONAL_CONFIG.maintenanceMarginRate,
-      minimumHistoryPoints: DEFAULT_DIRECTIONAL_CONFIG.minimumHistoryPoints,
-      maximumHoldMinutes: DEFAULT_DIRECTIONAL_CONFIG.maximumHoldMinutes,
-      cooldownMinutes: DEFAULT_DIRECTIONAL_CONFIG.cooldownMinutes,
-      fundingRate8h: DEFAULT_DIRECTIONAL_CONFIG.fundingRate8h,
-      onePositionPerRun: true,
-      liveExecutionEnabled: false,
-    },
-    forwardPerformance,
-    latestBacktestPerformance: backtestPerformance,
-    recentRuns: directionalPaperStore.getRecentRuns(20),
-    recentPositions: selectedRun ? directionalPaperStore.getRecentPositions(selectedRun.id, 20) : [],
-    recentDecisions: selectedRun ? directionalPaperStore.getRecentDecisions(selectedRun.id, 100) : [],
-  };
 }
 
 function runDirectionalPaperCycle(now = new Date()) {
@@ -1685,42 +1646,11 @@ app.get('/api/agent/aggressive-performance', (req, res) => {
   });
 });
 
-app.get('/api/agent/directional-performance', (_req, res) => {
-  res.json({
-    success: true,
-    data: getDirectionalPaperStatus(),
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.get('/api/agent/directional-positions/:id', (req, res) => {
-  try {
-    const id = Math.floor(parsePositiveNumber(req.params.id, 'id'));
-    const position = directionalPaperStore.getPosition(id);
-    if (!position) {
-      res.status(404).json({
-        success: false,
-        error: 'Directional paper position not found',
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-    res.json({
-      success: true,
-      data: {
-        position,
-        fills: directionalPaperStore.getFills(id),
-        evaluations: directionalPaperStore.getRecentEvaluations(id, 10_000),
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid directional position parameter',
-      timestamp: new Date().toISOString(),
-    });
-  }
+registerDirectionalPaperRoutes(app, {
+  store: directionalPaperStore,
+  enabled: DIRECTIONAL_PAPER_ENABLED,
+  strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
+  config: DEFAULT_DIRECTIONAL_CONFIG,
 });
 
 app.get('/api/agent/aggressive-positions/:id', (req, res) => {
