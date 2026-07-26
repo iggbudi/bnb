@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 import { calculateIL, calculateLPInvestmentProjection } from '../amm.js';
-import { registerFrontendAndErrorRoutes, registerHealthRoutes } from '../bnb-routes.js';
+import { registerFrontendAndErrorRoutes } from '../bnb-routes.js';
 import { APPLICATION_SCHEMA_VERSION } from '../schema-migrations.js';
 import { StorageMaintenanceService } from '../storage-maintenance.js';
 import type { PaperAgentDecision } from '../agent-store.js';
@@ -37,6 +37,7 @@ import { getPoolByAddress } from '../dexscreener.js';
 import { evaluateExecutionReadiness } from '../execution-control.js';
 import { registerAggressivePaperRoutes } from '../features/aggressive-paper/index.js';
 import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
+import { registerOperationsRoutes } from '../features/operations/index.js';
 import {
   estimateFullRangeFeeBetweenCheckpoints,
   FULL_RANGE_FEE_ACCOUNTING_VERSION,
@@ -1209,7 +1210,10 @@ function getReadiness(now = Date.now()) {
   };
 }
 
-registerHealthRoutes(app, getReadiness);
+registerOperationsRoutes(app, {
+  getReadiness,
+  getStorageStatus: () => storageMaintenance.getStatus(),
+});
 
 // Get WBNB/USDT analysis
 app.get('/api/wbnbusdt', async (req, res) => {
@@ -1299,14 +1303,6 @@ app.get('/api/history/stats', (req, res) => {
       totalRows: snapshotStore.count(),
       periods: snapshotStore.getStatistics(),
     },
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.get('/api/operations/storage', (_req, res) => {
-  res.json({
-    success: true,
-    data: storageMaintenance.getStatus(),
     timestamp: new Date().toISOString(),
   });
 });
