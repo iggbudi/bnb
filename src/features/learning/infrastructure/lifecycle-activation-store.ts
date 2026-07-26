@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { applicationDatabasePath, openApplicationDatabase } from '../../../shared/database/connection.js';
+import { prepareStoreSchema, type StoreSchemaOptions } from '../../../shared/database/store-schema.js';
 
 export type LifecycleRuntimeMode = 'SHADOW' | 'PAPER_ACTIVE';
 
@@ -50,9 +51,24 @@ export function createLifecycleActivationSchema(database: DatabaseSync): void {
 export class LifecycleActivationStore {
   private readonly database: DatabaseSync;
 
-  constructor(databasePath = applicationDatabasePath(), now = new Date()) {
+  constructor(
+    databasePath = applicationDatabasePath(),
+    now = new Date(),
+    schemaOptions: StoreSchemaOptions = {}
+  ) {
     this.database = openApplicationDatabase(databasePath);
-    createLifecycleActivationSchema(this.database);
+    try {
+      prepareStoreSchema(
+        this.database,
+        'learning',
+        ['lifecycle_activation_state', 'lifecycle_activation_events'],
+        createLifecycleActivationSchema,
+        schemaOptions
+      );
+    } catch (error) {
+      this.database.close();
+      throw error;
+    }
     this.database
       .prepare(
         `

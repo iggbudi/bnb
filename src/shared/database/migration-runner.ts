@@ -30,16 +30,23 @@ export class SchemaMigrationRunner {
         );
       `);
       this.validateDefinitions();
-      const appliedVersions = new Set(
-        (database.prepare('SELECT version FROM schema_migrations').all() as Array<{ version: number }>).map(
-          row => Number(row.version)
-        )
-      );
-
       for (const migration of this.migrations) {
-        if (appliedVersions.has(migration.version)) continue;
         database.exec('BEGIN IMMEDIATE');
         try {
+          // Check after acquiring the write lock so concurrent startup processes
+          // cannot both apply and record the same migration.
+          const applied = database
+            .prepare('SELECT name FROM schema_migrations WHERE version = ?')
+            .get(migration.version) as { name: string } | undefined;
+          if (applied) {
+            if (applied.name !== migration.name) {
+              throw new Error(
+                `Applied schema migration ${migration.version} is named ${applied.name}, expected ${migration.name}`
+              );
+            }
+            database.exec('COMMIT');
+            continue;
+          }
           migration.up(database);
           database
             .prepare('INSERT INTO schema_migrations (version, name, applied_at) VALUES (?, ?, ?)')

@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { applicationDatabasePath, openApplicationDatabase } from '../../../shared/database/connection.js';
+import { prepareStoreSchema, type StoreSchemaOptions } from '../../../shared/database/store-schema.js';
 import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
 
 export interface OnchainPoolSnapshot {
@@ -37,9 +38,20 @@ export function createOnchainSnapshotSchema(database: DatabaseSync): void {
 export class OnchainStore {
   private readonly database: DatabaseSync;
 
-  constructor(databasePath = applicationDatabasePath()) {
+  constructor(databasePath = applicationDatabasePath(), schemaOptions: StoreSchemaOptions = {}) {
     this.database = openApplicationDatabase(databasePath);
-    createOnchainSnapshotSchema(this.database);
+    try {
+      prepareStoreSchema(
+        this.database,
+        'market-data',
+        ['onchain_pool_snapshots'],
+        createOnchainSnapshotSchema,
+        schemaOptions
+      );
+    } catch (error) {
+      this.database.close();
+      throw error;
+    }
   }
 
   saveIfAbsent(state: PancakeV3OnchainState): boolean {

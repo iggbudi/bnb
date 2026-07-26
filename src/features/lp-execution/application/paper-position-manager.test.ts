@@ -69,9 +69,9 @@ const poolSnapshot: PoolSnapshotInput = {
 function setup() {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-paper-position-'));
   const path = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(path);
-  const positionStore = new PositionStore(path);
-  const snapshotStore = new SnapshotStore(path);
+  const agentStore = new AgentStore(path, { initializeSchema: true });
+  const positionStore = new PositionStore(path, { initializeSchema: true });
+  const snapshotStore = new SnapshotStore(path, { initializeSchema: true });
   const signal = agentStore.saveIfAbsent(signalInput).decision;
   return { directory, agentStore, positionStore, snapshotStore, signal };
 }

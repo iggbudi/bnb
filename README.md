@@ -37,6 +37,7 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 - **LAN tepercaya:** gunakan `HOST=0.0.0.0`, tambahkan origin UI LAN secara eksplisit, dan lindungi perangkat/firewall. Jangan membuka port langsung ke internet.
 - **Reverse proxy:** tetap utamakan bind localhost, terminasi TLS di proxy, dan set `TRUST_PROXY=true` hanya bila tepat satu proxy tepercaya berada di depan aplikasi. Jangan percaya header forwarded dari jaringan publik.
 - API memakai security headers, body limit 32 KiB, rate limit global/AI, limit concurrency RPC, dan limit admin exit terpisah agar jalur pengurangan risiko tidak ikut habis oleh trafik publik.
+- Rate limiter memakai bounded in-memory key set dan tetap **process-local**. Deployment multi-instance wajib menggantinya dengan shared limiter; `TRUST_PROXY=true` hanya aman di belakang proxy tepercaya yang menormalkan alamat klien.
 - Probe: `/api/health/live` hanya memeriksa proses; `/api/health/ready` memeriksa SQLite, freshness market/on-chain, scheduler macet, dan status shutdown.
 
 ## 🧱 Struktur Aplikasi dan Quality Gates

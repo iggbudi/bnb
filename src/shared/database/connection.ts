@@ -17,7 +17,7 @@ export function openApplicationDatabase(
 ): DatabaseSync {
   if (databasePath !== ':memory:') mkdirSync(dirname(databasePath), { recursive: true });
   const database = new DatabaseSync(databasePath);
-  database.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
+  database.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;');
   if (options.foreignKeys) database.exec('PRAGMA foreign_keys = ON;');
   return database;
 }

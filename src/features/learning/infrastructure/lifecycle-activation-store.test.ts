@@ -4,7 +4,9 @@ import test from 'node:test';
 import { LifecycleActivationStore } from './lifecycle-activation-store.js';
 
 test('Stage G activation defaults to shadow and rejects an unqualified run', () => {
-  const store = new LifecycleActivationStore(':memory:', new Date('2026-08-01T00:00:00.000Z'));
+  const store = new LifecycleActivationStore(':memory:', new Date('2026-08-01T00:00:00.000Z'), {
+    initializeSchema: true,
+  });
   try {
     assert.equal(store.getState().mode, 'SHADOW');
     assert.throws(
@@ -26,7 +28,9 @@ test('Stage G activation defaults to shadow and rejects an unqualified run', () 
 });
 
 test('activates paper-only mode after qualification and supports explicit rollback', () => {
-  const store = new LifecycleActivationStore(':memory:', new Date('2026-08-01T00:00:00.000Z'));
+  const store = new LifecycleActivationStore(':memory:', new Date('2026-08-01T00:00:00.000Z'), {
+    initializeSchema: true,
+  });
   try {
     assert.throws(
       () =>

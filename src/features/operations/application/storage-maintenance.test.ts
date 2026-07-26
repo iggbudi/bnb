@@ -48,8 +48,8 @@ function onchain(blockNumber: number, capturedAt: Date): PancakeV3OnchainState {
 
 test('snapshot stores delete observations beyond the configured retention window', () => {
   const now = new Date('2026-07-25T00:00:00.000Z');
-  const marketStore = new SnapshotStore(':memory:');
-  const chainStore = new OnchainStore(':memory:');
+  const marketStore = new SnapshotStore(':memory:', { initializeSchema: true });
+  const chainStore = new OnchainStore(':memory:', { initializeSchema: true });
   try {
     marketStore.save(market, new Date('2026-05-01T00:00:00.000Z'));
     marketStore.save(market, new Date('2026-07-01T00:00:00.000Z'));
@@ -94,8 +94,8 @@ test('storage maintenance backs up, prunes snapshots, checkpoints WAL, and repor
   const directory = mkdtempSync(join(tmpdir(), 'bnb-storage-maintenance-'));
   const databasePath = join(directory, 'data.sqlite');
   const backupDirectory = join(directory, 'backups');
-  const marketStore = new SnapshotStore(databasePath);
-  const chainStore = new OnchainStore(databasePath);
+  const marketStore = new SnapshotStore(databasePath, { initializeSchema: true });
+  const chainStore = new OnchainStore(databasePath, { initializeSchema: true });
   const now = new Date('2026-07-25T00:00:00.000Z');
   try {
     marketStore.save(market, new Date('2026-05-01T00:00:00.000Z'));

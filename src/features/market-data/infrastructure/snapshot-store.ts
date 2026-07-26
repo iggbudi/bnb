@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { backup, DatabaseSync } from 'node:sqlite';
 import { applicationDatabasePath, openApplicationDatabase } from '../../../shared/database/connection.js';
+import { prepareStoreSchema, type StoreSchemaOptions } from '../../../shared/database/store-schema.js';
 
 export interface PoolSnapshotInput {
   price: number;
@@ -112,10 +113,21 @@ export class SnapshotStore {
   private readonly database: DatabaseSync;
   private readonly databasePath: string;
 
-  constructor(databasePath = applicationDatabasePath()) {
+  constructor(databasePath = applicationDatabasePath(), schemaOptions: StoreSchemaOptions = {}) {
     this.databasePath = databasePath;
     this.database = openApplicationDatabase(databasePath);
-    createMarketSnapshotSchema(this.database);
+    try {
+      prepareStoreSchema(
+        this.database,
+        'market-data',
+        ['pool_snapshots'],
+        createMarketSnapshotSchema,
+        schemaOptions
+      );
+    } catch (error) {
+      this.database.close();
+      throw error;
+    }
   }
 
   save(snapshot: PoolSnapshotInput, capturedAt = new Date()): void {

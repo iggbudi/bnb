@@ -1,6 +1,11 @@
 import type { Express } from 'express';
 
-import { registerExecutionControlRoutes, type ExecutionRouteDependencies } from './http/execution-routes.js';
+import { registerEntryProposalRoutes } from './http/entry-proposal-routes.js';
+import { registerExecutionStatusAndControlRoutes } from './http/execution-control-routes.js';
+import type { ExecutionRouteDependencies } from './http/execution-routes.js';
+import { registerExitProposalRoutes } from './http/exit-proposal-routes.js';
+import { registerExitSettlementRoutes } from './http/exit-settlement-routes.js';
+import { registerMintSettlementRoutes } from './http/mint-settlement-routes.js';
 import {
   registerPositionLifecycleRoutes,
   type PositionLifecycleRouteDependencies,
@@ -13,7 +18,11 @@ export interface LpExecutionRouteDependencies {
 
 export function registerLpExecutionRoutes(app: Express, dependencies: LpExecutionRouteDependencies): void {
   registerPositionLifecycleRoutes(app, dependencies.lifecycle);
-  registerExecutionControlRoutes(app, dependencies.execution);
+  registerExecutionStatusAndControlRoutes(app, dependencies.execution);
+  registerEntryProposalRoutes(app, dependencies.execution);
+  registerMintSettlementRoutes(app, dependencies.execution);
+  registerExitProposalRoutes(app, dependencies.execution);
+  registerExitSettlementRoutes(app, dependencies.execution);
 }
 
 export { ExecutionService } from './application/execution-service.js';

@@ -26,8 +26,8 @@ const signal: PaperAgentDecisionInput = {
 function createStores() {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-position-'));
   const path = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(path);
-  const positionStore = new PositionStore(path);
+  const agentStore = new AgentStore(path, { initializeSchema: true });
+  const positionStore = new PositionStore(path, { initializeSchema: true });
   return { directory, agentStore, positionStore };
 }
 

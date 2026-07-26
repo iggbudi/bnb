@@ -64,8 +64,8 @@ test('schema migration runner applies ordered migrations exactly once', () => {
 test('application migration adds the directional paper ledger without changing snapshots', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-application-migration-'));
   const databasePath = join(directory, 'test.sqlite');
-  const snapshots = new SnapshotStore(databasePath);
-  const onchain = new OnchainStore(databasePath);
+  const snapshots = new SnapshotStore(databasePath, { initializeSchema: true });
+  const onchain = new OnchainStore(databasePath, { initializeSchema: true });
   snapshots.close();
   onchain.close();
 
@@ -100,8 +100,8 @@ test('application migration adds the directional paper ledger without changing s
 test('feature schema ownership upgrades a version 3 database idempotently', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-feature-schema-'));
   const databasePath = join(directory, 'test.sqlite');
-  const snapshots = new SnapshotStore(databasePath);
-  const onchain = new OnchainStore(databasePath);
+  const snapshots = new SnapshotStore(databasePath, { initializeSchema: true });
+  const onchain = new OnchainStore(databasePath, { initializeSchema: true });
   snapshots.save(
     {
       price: 600,

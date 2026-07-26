@@ -107,8 +107,8 @@ function setup() {
   const path = join(directory, 'test.sqlite');
   return {
     directory,
-    store: new AggressivePaperStore(path),
-    snapshots: new SnapshotStore(path),
+    store: new AggressivePaperStore(path, { initializeSchema: true }),
+    snapshots: new SnapshotStore(path, { initializeSchema: true }),
   };
 }
 

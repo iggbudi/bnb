@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { applicationDatabasePath, openApplicationDatabase } from '../../../shared/database/connection.js';
+import { prepareStoreSchema, type StoreSchemaOptions } from '../../../shared/database/store-schema.js';
 
 import type { DirectionalSide, DirectionalStrategyConfig } from '../domain/directional-strategy.js';
 
@@ -239,9 +240,26 @@ function jsonObject(value: string): Record<string, unknown> {
 export class DirectionalPaperStore {
   private readonly database: DatabaseSync;
 
-  constructor(databasePath = applicationDatabasePath()) {
+  constructor(databasePath = applicationDatabasePath(), schemaOptions: StoreSchemaOptions = {}) {
     this.database = openApplicationDatabase(databasePath, { foreignKeys: true });
-    createDirectionalPaperSchema(this.database);
+    try {
+      prepareStoreSchema(
+        this.database,
+        'directional-paper',
+        [
+          'directional_paper_runs',
+          'directional_paper_positions',
+          'directional_paper_decisions',
+          'directional_paper_fills',
+          'directional_paper_evaluations',
+        ],
+        createDirectionalPaperSchema,
+        schemaOptions
+      );
+    } catch (error) {
+      this.database.close();
+      throw error;
+    }
   }
 
   transaction<T>(operation: () => T): T {

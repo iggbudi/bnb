@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { applicationDatabasePath, openApplicationDatabase } from '../../../shared/database/connection.js';
+import { prepareStoreSchema, type StoreSchemaOptions } from '../../../shared/database/store-schema.js';
 import { FULL_RANGE_FEE_ACCOUNTING_VERSION } from '../../lp-analysis/index.js';
 import type { PaperAgentDecision } from '../../paper-agent/index.js';
 import type { PaperPositionLifecycleResult } from '../application/paper-position-manager.js';
@@ -102,10 +103,25 @@ export function createShadowModeSchema(database: DatabaseSync): void {
 export class ShadowModeStore {
   private readonly database: DatabaseSync;
 
-  constructor(databasePath = applicationDatabasePath(), now = new Date()) {
+  constructor(
+    databasePath = applicationDatabasePath(),
+    now = new Date(),
+    schemaOptions: StoreSchemaOptions = {}
+  ) {
     this.database = openApplicationDatabase(databasePath, { foreignKeys: true });
-    createShadowModeSchema(this.database);
-    this.ensureCurrentRun(now, 'Stage F shadow validation started.');
+    try {
+      prepareStoreSchema(
+        this.database,
+        'lp-execution',
+        ['lifecycle_shadow_runs', 'lifecycle_shadow_observations'],
+        createShadowModeSchema,
+        schemaOptions
+      );
+      this.ensureCurrentRun(now, 'Stage F shadow validation started.');
+    } catch (error) {
+      this.database.close();
+      throw error;
+    }
   }
 
   ensureCurrentRun(now = new Date(), reason = 'Shadow validation started.'): ShadowRunRecord {

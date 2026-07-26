@@ -25,7 +25,7 @@ const waitResult: PaperPositionLifecycleResult = {
 function setup() {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-shadow-'));
   const path = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(path);
+  const agentStore = new AgentStore(path, { initializeSchema: true });
   agentStore.saveIfAbsent({
     decisionHour: start.toISOString(),
     createdAt: start.toISOString(),
@@ -41,8 +41,8 @@ function setup() {
     predictedExcessVsHold24h: 0,
     features: { feeAccountingVersion: FULL_RANGE_FEE_ACCOUNTING_VERSION },
   });
-  const positionStore = new PositionStore(path);
-  const shadowStore = new ShadowModeStore(path, start);
+  const positionStore = new PositionStore(path, { initializeSchema: true });
+  const shadowStore = new ShadowModeStore(path, start, { initializeSchema: true });
   return { directory, agentStore, positionStore, shadowStore };
 }
 

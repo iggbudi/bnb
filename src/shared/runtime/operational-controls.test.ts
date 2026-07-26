@@ -80,3 +80,24 @@ test('FixedWindowRateLimiter returns retry timing and resets its window', () => 
   assert.equal(denied.retryAfterSeconds, 60);
   assert.equal(limiter.consume('client', 61_001).allowed, true);
 });
+
+test('FixedWindowRateLimiter bounds untrusted keys and cleans expired windows', () => {
+  const limiter = new FixedWindowRateLimiter(1, 1_000, { maxKeys: 3 });
+  limiter.consume('ip-1', 0);
+  limiter.consume('ip-2', 1);
+  limiter.consume('ip-3', 2);
+  limiter.consume('ip-4', 3);
+  assert.equal(limiter.retainedKeyCount, 3);
+
+  // ip-1 was evicted as the oldest key, so it gets a fresh allowance.
+  assert.equal(limiter.consume('ip-1', 4).allowed, true);
+  assert.equal(limiter.retainedKeyCount, 3);
+
+  // Creating a new window also removes every expired identity.
+  limiter.consume('after-reset', 2_000);
+  assert.equal(limiter.retainedKeyCount, 1);
+});
+
+test('FixedWindowRateLimiter rejects an invalid key bound', () => {
+  assert.throws(() => new FixedWindowRateLimiter(1, 1_000, { maxKeys: 0 }), /positive/);
+});

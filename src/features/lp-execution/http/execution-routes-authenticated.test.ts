@@ -9,7 +9,12 @@ import { AgentStore, type PaperAgentDecisionInput } from '../../paper-agent/inde
 import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import { ExecutionStore } from '../infrastructure/execution-store.js';
 import { PositionStore } from '../infrastructure/position-store.js';
-import { registerExecutionControlRoutes, type ExecutionChainAdapter } from './execution-routes.js';
+import { registerEntryProposalRoutes } from './entry-proposal-routes.js';
+import { registerExecutionStatusAndControlRoutes } from './execution-control-routes.js';
+import type { ExecutionChainAdapter, ExecutionRouteDependencies } from './execution-routes.js';
+import { registerExitProposalRoutes } from './exit-proposal-routes.js';
+import { registerExitSettlementRoutes } from './exit-settlement-routes.js';
+import { registerMintSettlementRoutes } from './mint-settlement-routes.js';
 
 const WALLET = '0x1111111111111111111111111111111111111111';
 const USDT = '0x55d398326f99059ff775485246999027b3197955';
@@ -84,10 +89,10 @@ function body(value: unknown): RequestInit {
 test('authenticated entry and risk-reducing exit preserve immutable evidence and fail closed', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-execution-http-'));
   const databasePath = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(databasePath);
+  const agentStore = new AgentStore(databasePath, { initializeSchema: true });
   const savedDecision = agentStore.saveIfAbsent(decision).decision;
-  const executionStore = new ExecutionStore(databasePath);
-  const positionStore = new PositionStore(databasePath);
+  const executionStore = new ExecutionStore(databasePath, { initializeSchema: true });
+  const positionStore = new PositionStore(databasePath, { initializeSchema: true });
   let mintFailure: Error | null = null;
   let exitFailure: Error | null = null;
 
@@ -186,7 +191,7 @@ test('authenticated entry and risk-reducing exit preserve immutable evidence and
 
   const app = express();
   app.use(express.json());
-  registerExecutionControlRoutes(app, {
+  const routeDependencies: ExecutionRouteDependencies = {
     agentStore,
     executionStore,
     positionStore,
@@ -203,7 +208,12 @@ test('authenticated entry and risk-reducing exit preserve immutable evidence and
     isExitSwapRouterReady: () => true,
     setExitSwapRouterReady: () => undefined,
     chainAdapter,
-  });
+  };
+  registerExecutionStatusAndControlRoutes(app, routeDependencies);
+  registerEntryProposalRoutes(app, routeDependencies);
+  registerMintSettlementRoutes(app, routeDependencies);
+  registerExitProposalRoutes(app, routeDependencies);
+  registerExitSettlementRoutes(app, routeDependencies);
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve, reject) => {
     server.once('listening', resolve);

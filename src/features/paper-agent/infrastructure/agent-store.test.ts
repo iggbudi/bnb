@@ -20,7 +20,7 @@ const decision: PaperAgentDecisionInput = {
 };
 
 test('stores at most one immutable paper decision per hour', () => {
-  const store = new AgentStore(':memory:');
+  const store = new AgentStore(':memory:', { initializeSchema: true });
 
   try {
     const first = store.saveIfAbsent(decision);
@@ -41,7 +41,7 @@ test('stores at most one immutable paper decision per hour', () => {
 });
 
 test('stores one outcome per decision and horizon and removes it from due work', () => {
-  const store = new AgentStore(':memory:');
+  const store = new AgentStore(':memory:', { initializeSchema: true });
 
   try {
     const savedDecision = store.saveIfAbsent(decision).decision;
@@ -220,7 +220,7 @@ test('stores one outcome per decision and horizon and removes it from due work',
 });
 
 test('excludes safety abstentions from accuracy, learning, and reflection queues', () => {
-  const store = new AgentStore(':memory:');
+  const store = new AgentStore(':memory:', { initializeSchema: true });
   try {
     const savedDecision = store.saveIfAbsent(decision).decision;
     const outcome = store.saveOutcomeIfAbsent({
@@ -306,7 +306,7 @@ test('excludes safety abstentions from accuracy, learning, and reflection queues
 });
 
 test('versions learning models and keeps only one active model', () => {
-  const store = new AgentStore(':memory:');
+  const store = new AgentStore(':memory:', { initializeSchema: true });
   const model = {
     featureNames: ['estimatedAPR'] as const,
     means: [5],

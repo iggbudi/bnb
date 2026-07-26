@@ -167,14 +167,28 @@ interface RateWindow {
   resetAt: number;
 }
 
+export interface FixedWindowRateLimiterOptions {
+  /** Maximum process-local identities retained at once. Oldest identities are evicted first. */
+  maxKeys?: number;
+}
+
 export class FixedWindowRateLimiter {
   private readonly windows = new Map<string, RateWindow>();
+  private readonly maxKeys: number;
 
   constructor(
     private readonly maximum: number,
-    private readonly windowMs: number
+    private readonly windowMs: number,
+    options: FixedWindowRateLimiterOptions = {}
   ) {
-    if (!Number.isInteger(maximum) || maximum < 1 || windowMs < 1) {
+    this.maxKeys = options.maxKeys ?? 10_000;
+    if (
+      !Number.isInteger(maximum) ||
+      maximum < 1 ||
+      windowMs < 1 ||
+      !Number.isInteger(this.maxKeys) ||
+      this.maxKeys < 1
+    ) {
       throw new Error('Rate limit configuration must be positive');
     }
   }
@@ -182,6 +196,9 @@ export class FixedWindowRateLimiter {
   consume(key: string, now = Date.now()): { allowed: boolean; retryAfterSeconds: number } {
     let window = this.windows.get(key);
     if (!window || now >= window.resetAt) {
+      if (window) this.windows.delete(key);
+      this.removeExpired(now);
+      this.evictOldestIfFull();
       window = { count: 0, resetAt: now + this.windowMs };
       this.windows.set(key, window);
     }
@@ -190,5 +207,23 @@ export class FixedWindowRateLimiter {
       allowed: window.count <= this.maximum,
       retryAfterSeconds: Math.max(1, Math.ceil((window.resetAt - now) / 1_000)),
     };
+  }
+
+  get retainedKeyCount(): number {
+    return this.windows.size;
+  }
+
+  private removeExpired(now: number): void {
+    for (const [key, window] of this.windows) {
+      if (now >= window.resetAt) this.windows.delete(key);
+    }
+  }
+
+  private evictOldestIfFull(): void {
+    while (this.windows.size >= this.maxKeys) {
+      const oldestKey = this.windows.keys().next().value as string | undefined;
+      if (oldestKey === undefined) return;
+      this.windows.delete(oldestKey);
+    }
   }
 }

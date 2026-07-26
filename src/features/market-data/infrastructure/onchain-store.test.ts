@@ -17,7 +17,7 @@ const state = {
 } as PancakeV3OnchainState;
 
 test('stores at most one on-chain snapshot per block', () => {
-  const store = new OnchainStore(':memory:');
+  const store = new OnchainStore(':memory:', { initializeSchema: true });
   try {
     assert.equal(store.saveIfAbsent(state), true);
     assert.equal(store.saveIfAbsent(state), false);

@@ -804,12 +804,12 @@ Temuan audit:
 
 Pekerjaan:
 
-- [ ] Tambahkan characterization test untuk database kosong, database legacy tanpa registry, serta database migration v1, v2, v3, dan v4.
-- [ ] Bentuk factory startup yang menyelesaikan bootstrap/migration sebelum store dan service dibuat.
-- [ ] Gunakan feature schema contribution sebagai satu sumber definisi schema tanpa mengubah migration v1–v4 yang sudah tercatat.
-- [ ] Setelah bootstrap terpusat terbukti kompatibel, ubah constructor store agar membuka serta memvalidasi schema, bukan melakukan migration tersembunyi.
-- [ ] Pastikan kegagalan migration menutup seluruh connection dan tidak meninggalkan container setengah terinisialisasi.
-- [ ] Uji startup paralel/restart, idempotency, rollback, index reconciliation, foreign key policy, WAL, dan database lama hasil backup.
+- [x] Tambahkan characterization test untuk database kosong, database legacy tanpa registry, serta database migration v1, v2, v3, dan v4.
+- [x] Bentuk factory startup yang menyelesaikan bootstrap/migration sebelum store dan service dibuat.
+- [x] Gunakan feature schema contribution sebagai satu sumber definisi schema tanpa mengubah migration v1–v4 yang sudah tercatat.
+- [x] Setelah bootstrap terpusat terbukti kompatibel, ubah constructor store agar membuka serta memvalidasi schema, bukan melakukan migration tersembunyi.
+- [x] Pastikan kegagalan migration menutup seluruh connection dan tidak meninggalkan container setengah terinisialisasi.
+- [x] Uji startup paralel/restart, idempotency, rollback, index reconciliation, foreign key policy, WAL, dan database lama hasil backup.
 
 #### P2.2 Pecah modul besar berdasarkan use case
 
@@ -823,17 +823,17 @@ Hotspot saat audit:
 
 Pekerjaan:
 
-- [ ] Pecah execution HTTP menjadi control, entry proposal, mint settlement, exit proposal, dan exit settlement route registrar.
-- [ ] Pecah store berdasarkan aggregate/repository yang mempunyai transaksi dan invariants jelas; jangan membagi hanya berdasarkan jumlah baris.
-- [ ] Pertahankan transaksi atomik lintas tabel melalui unit-of-work atau transaction boundary yang eksplisit.
-- [ ] Pertahankan façade/public contract sementara selama caller dimigrasikan, lalu hapus compatibility layer pada akhir tahap.
-- [ ] Tambahkan test transaksi dan invariant sebelum memindahkan query.
+- [x] Pecah execution HTTP menjadi control, entry proposal, mint settlement, exit proposal, dan exit settlement route registrar.
+- [x] Pecah store berdasarkan aggregate/repository yang mempunyai transaksi dan invariants jelas; jangan membagi hanya berdasarkan jumlah baris.
+- [x] Pertahankan transaksi atomik lintas tabel melalui unit-of-work atau transaction boundary yang eksplisit.
+- [x] Pertahankan façade/public contract sementara selama caller dimigrasikan, lalu hapus compatibility layer pada akhir tahap.
+- [x] Tambahkan test transaksi dan invariant sebelum memindahkan query.
 
 #### P2.3 Bound resource operasional
 
-- [ ] Tambahkan expiry cleanup atau bounded LRU pada key `FixedWindowRateLimiter` agar `Map` tidak tumbuh tanpa batas.
-- [ ] Uji banyak IP/key, reset window, cleanup, `Retry-After`, dan mode `TRUST_PROXY`.
-- [ ] Dokumentasikan bahwa limiter tetap process-local dan deployment multi-instance membutuhkan shared limiter.
+- [x] Tambahkan expiry cleanup atau bounded LRU pada key `FixedWindowRateLimiter` agar `Map` tidak tumbuh tanpa batas.
+- [x] Uji banyak IP/key, reset window, cleanup, `Retry-After`, dan mode `TRUST_PROXY`.
+- [x] Dokumentasikan bahwa limiter tetap process-local dan deployment multi-instance membutuhkan shared limiter.
 
 Kriteria selesai:
 
@@ -841,6 +841,14 @@ Kriteria selesai:
 - Database kosong serta seluruh versi fixture lama dapat startup secara idempotent.
 - Hotspot terpecah tanpa mengubah transaksi, endpoint, atau safety behavior.
 - Rate limiter mempunyai batas memori yang teruji.
+
+Catatan penyelesaian 2026-07-26 UTC:
+
+- Bootstrap database sekarang merekonsiliasi kontribusi schema secara transaksional sebelum migration immutable v1–v4 dan sebelum store dibuat. Constructor production hanya memvalidasi tabel; fixture test harus memilih inisialisasi schema secara eksplisit.
+- Characterization test mencakup database kosong, legacy tanpa registry, fixture v1–v4, restart idempotent, dua process startup paralel, rollback migration, index reconciliation, foreign key, WAL, dan `PRAGMA quick_check`.
+- Execution HTTP dipecah menjadi lima registrar use case. Store paper-agent, execution, position, dan aggressive-paper menjadi façade tipis di atas repository per aggregate/use case sambil mempertahankan transaction boundary serta public API.
+- `FixedWindowRateLimiter` membersihkan window expired dan membatasi 10.000 key process-local dengan eviction oldest-first; test mencakup key flooding, reset, `Retry-After`, dan `TRUST_PROXY`.
+- `npm run check` lulus dengan 180 test dan aggregate coverage 88,61% line / 72,76% branch / 88,15% function. `npm audit --omit=dev` melaporkan 0 vulnerability dan database aktif menghasilkan `PRAGMA quick_check = ok`.
 
 ### P3 — Sinkronkan Dokumentasi dan Guardrail Operasional
 

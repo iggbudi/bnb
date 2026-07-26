@@ -25,7 +25,7 @@ const snapshot: PoolSnapshotInput = {
 };
 
 test('stores and reads a pool snapshot', () => {
-  const store = new SnapshotStore(':memory:');
+  const store = new SnapshotStore(':memory:', { initializeSchema: true });
   const capturedAt = new Date();
   store.save(snapshot, capturedAt);
 
@@ -39,7 +39,7 @@ test('stores and reads a pool snapshot', () => {
 });
 
 test('upserts repeated snapshots within the same minute', () => {
-  const store = new SnapshotStore(':memory:');
+  const store = new SnapshotStore(':memory:', { initializeSchema: true });
   const minute = Math.floor(Date.now() / 60_000) * 60_000;
   store.save(snapshot, new Date(minute + 1_000));
   store.save({ ...snapshot, price: 2_100 }, new Date(minute + 59_000));
@@ -50,7 +50,7 @@ test('upserts repeated snapshots within the same minute', () => {
 });
 
 test('returns downsampled chart data and period statistics', () => {
-  const store = new SnapshotStore(':memory:');
+  const store = new SnapshotStore(':memory:', { initializeSchema: true });
   const minute = Math.floor(Date.now() / 60_000) * 60_000;
   store.save(snapshot, new Date(minute - 60_000));
   store.save({ ...snapshot, price: 2_100, tvl: 11_000_000 }, new Date(minute));
@@ -66,7 +66,7 @@ test('returns downsampled chart data and period statistics', () => {
 });
 
 test('reads snapshots between decision and outcome timestamps', () => {
-  const store = new SnapshotStore(':memory:');
+  const store = new SnapshotStore(':memory:', { initializeSchema: true });
   const start = new Date('2026-07-18T10:00:00.000Z');
   store.save(snapshot, start);
   store.save({ ...snapshot, price: 2_010 }, new Date('2026-07-18T10:01:00.000Z'));
@@ -90,12 +90,12 @@ test('reads snapshots between decision and outcome timestamps', () => {
 test('creates a consistent SQLite backup file', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-viewer-'));
   const databasePath = join(directory, 'source.sqlite');
-  const store = new SnapshotStore(databasePath);
+  const store = new SnapshotStore(databasePath, { initializeSchema: true });
   store.save(snapshot);
 
   const backupPath = await store.createBackup(join(directory, 'backups'));
   assert.ok(existsSync(backupPath));
-  const backupStore = new SnapshotStore(backupPath);
+  const backupStore = new SnapshotStore(backupPath, { initializeSchema: true });
   assert.equal(backupStore.count(), 1);
   backupStore.close();
   store.close();

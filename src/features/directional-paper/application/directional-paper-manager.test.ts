@@ -60,7 +60,7 @@ function context() {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-directional-'));
   return {
     directory,
-    store: new DirectionalPaperStore(join(directory, 'paper.sqlite')),
+    store: new DirectionalPaperStore(join(directory, 'paper.sqlite'), { initializeSchema: true }),
   };
 }
 

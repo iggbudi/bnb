@@ -25,7 +25,7 @@ const paperDecision: PaperAgentDecisionInput = {
 };
 
 test('execution store defaults to emergency stop engaged', () => {
-  const store = new ExecutionStore(':memory:');
+  const store = new ExecutionStore(':memory:', { initializeSchema: true });
   try {
     const control = store.getControl();
     assert.equal(control.killSwitchEngaged, true);
@@ -37,9 +37,9 @@ test('execution store defaults to emergency stop engaged', () => {
 test('execution proposals require manual review and produce audit events', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-execution-'));
   const path = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(path);
+  const agentStore = new AgentStore(path, { initializeSchema: true });
   const decision = agentStore.saveIfAbsent(paperDecision).decision;
-  const store = new ExecutionStore(path);
+  const store = new ExecutionStore(path, { initializeSchema: true });
   try {
     store.setKillSwitch(false, 'Test unlock.', new Date('2026-07-18T10:00:00.000Z'));
     const proposal = store.createProposal({
@@ -120,9 +120,9 @@ test('execution proposals require manual review and produce audit events', () =>
 test('exit proposals require separate manual approval and only one active proposal per position', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-exit-execution-'));
   const path = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(path);
+  const agentStore = new AgentStore(path, { initializeSchema: true });
   const decision = agentStore.saveIfAbsent(paperDecision).decision;
-  const positionStore = new PositionStore(path);
+  const positionStore = new PositionStore(path, { initializeSchema: true });
   const position = positionStore.createPosition({
     mode: 'LIVE',
     investmentUsd: 100,
@@ -130,7 +130,7 @@ test('exit proposals require separate manual approval and only one active propos
     entryPrice: 600,
   });
   positionStore.transitionPosition({ id: position.id, toStatus: 'OPEN', reason: 'Live test.' });
-  const store = new ExecutionStore(path);
+  const store = new ExecutionStore(path, { initializeSchema: true });
   try {
     const proposal = store.createExitProposal({
       positionId: position.id,
@@ -174,10 +174,10 @@ test('exit proposals require separate manual approval and only one active propos
 test('verified exit settlement closes LIVE position and feeds the daily-loss gate', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-exit-settlement-'));
   const path = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(path);
+  const agentStore = new AgentStore(path, { initializeSchema: true });
   const decision = agentStore.saveIfAbsent(paperDecision).decision;
-  const positionStore = new PositionStore(path);
-  const store = new ExecutionStore(path);
+  const positionStore = new PositionStore(path, { initializeSchema: true });
+  const store = new ExecutionStore(path, { initializeSchema: true });
   const wallet = '0x1111111111111111111111111111111111111111';
   try {
     const entryProposal = store.createProposal({
@@ -276,9 +276,9 @@ test('verified exit settlement closes LIVE position and feeds the daily-loss gat
 test('expired execution proposal cannot be approved', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-execution-'));
   const path = join(directory, 'test.sqlite');
-  const agentStore = new AgentStore(path);
+  const agentStore = new AgentStore(path, { initializeSchema: true });
   const decision = agentStore.saveIfAbsent(paperDecision).decision;
-  const store = new ExecutionStore(path);
+  const store = new ExecutionStore(path, { initializeSchema: true });
   try {
     const proposal = store.createProposal({
       decisionId: decision.id,
