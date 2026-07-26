@@ -66,7 +66,7 @@ bnb/
 └── package.json
 ```
 
-Detail boundary, layer, dan langkah menambah slice tersedia di [`docs/architecture.md`](docs/architecture.md). Keputusan modular monolith dicatat di [`ADR-0001`](docs/adr/0001-vertical-slice-modular-monolith.md).
+Detail boundary, public port, layer, schema bootstrap sebelum store, dan langkah menambah slice tersedia di [`docs/architecture.md`](docs/architecture.md). Graph runtime/type-only aktif berada di [`docs/feature-dependency-graph.md`](docs/feature-dependency-graph.md). Keputusan modular monolith dicatat di [`ADR-0001`](docs/adr/0001-vertical-slice-modular-monolith.md).
 
 ## API
 
@@ -139,8 +139,12 @@ SQLITE_BACKUP_DIR=backups
 SNAPSHOT_RETENTION_DAYS=60
 BACKUP_RETENTION_FILES=21
 PORT=3001
+HOST=127.0.0.1
+CORS_ALLOWED_ORIGINS=http://127.0.0.1:3001,http://localhost:3001
+TRUST_PROXY=false
 AGGRESSIVE_PAPER_ENABLED=true
 DIRECTIONAL_PAPER_ENABLED=true
+LIVE_EXECUTION_ENABLED=false
 ```
 
 `OPENAI_API_KEY` boleh kosong. Fitur live data, SQLite, simulator, dan IL tetap berfungsi tanpa OpenAI.
@@ -167,9 +171,14 @@ npm run background:stop
 
 Boot script: `~/.termux/boot/start-bnb-viewer.sh`.
 
+Status background memvalidasi process command `node dist/app/server.js`, Git revision, build timestamp, expected/applied schema, dan readiness. Source saat ini memakai application schema v4 (`feature_schema_ownership_registry`); expected version dibaca dari build, bukan di-hard-code pada script. PID hidup saja tidak membuktikan deployment terbaru.
+
 ## Runbook Operasional
 
-Restore backup SQLite, rollback restore, pemeriksaan retention, dan recovery BSC RPC outage didokumentasikan di [`docs/runbook-storage-and-rpc-recovery.md`](docs/runbook-storage-and-rpc-recovery.md).
+- Backup/build/stop/start, deteksi stale deployment, validasi migration/readiness/execution safety, dan rollback Termux: [`docs/runbook-termux-release.md`](docs/runbook-termux-release.md).
+- Restore backup SQLite, rollback restore, pemeriksaan retention, dan recovery BSC RPC outage: [`docs/runbook-storage-and-rpc-recovery.md`](docs/runbook-storage-and-rpc-recovery.md).
+
+Default deployment hanya localhost. `HOST=0.0.0.0` dibolehkan khusus LAN tepercaya yang dilindungi; jangan membuka service langsung ke internet. `TRUST_PROXY=true` hanya untuk satu reverse proxy tepercaya yang melakukan terminasi TLS dan normalisasi alamat client.
 
 ## Batasan
 

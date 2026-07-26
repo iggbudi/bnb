@@ -860,13 +860,13 @@ Temuan audit:
 
 Pekerjaan:
 
-- [ ] Perbarui status aktif di `progress.md` setelah P0 selesai: entry point, migration, jumlah test, coverage, dan health deployment.
-- [ ] Tandai path/count lama sebagai catatan historis atau ganti hanya bagian yang mengklaim sebagai kondisi aktif.
-- [ ] Sinkronkan `README.md`, `WIKI.md`, architecture docs, runbook, dan `.env.example` dengan build/schema identity serta prosedur deteksi stale deployment.
-- [ ] Perbarui diagram dependency setelah P1 dan dokumentasikan public port setiap slice.
-- [ ] Hindari hard-coded test count pada status permanen bila mudah basi; tautkan ke hasil CI atau tulis tanggal snapshot dengan jelas.
-- [ ] Tambahkan checklist release Termux: backup, build, stop, start, process identity, migration, readiness, execution safety, dan rollback.
-- [ ] Verifikasi dokumentasi tidak menyarankan membuka service langsung ke internet; mode LAN/reverse proxy harus tetap eksplisit sebagai deployment tepercaya.
+- [x] Perbarui status aktif di `progress.md` setelah P0 selesai: entry point, migration, jumlah test, coverage, dan health deployment.
+- [x] Tandai path/count lama sebagai catatan historis atau ganti hanya bagian yang mengklaim sebagai kondisi aktif.
+- [x] Sinkronkan `README.md`, `WIKI.md`, architecture docs, runbook, dan `.env.example` dengan build/schema identity serta prosedur deteksi stale deployment.
+- [x] Perbarui diagram dependency setelah P1 dan dokumentasikan public port setiap slice.
+- [x] Hindari hard-coded test count pada status permanen bila mudah basi; tautkan ke hasil CI atau tulis tanggal snapshot dengan jelas.
+- [x] Tambahkan checklist release Termux: backup, build, stop, start, process identity, migration, readiness, execution safety, dan rollback.
+- [x] Verifikasi dokumentasi tidak menyarankan membuka service langsung ke internet; mode LAN/reverse proxy harus tetap eksplisit sebagai deployment tepercaya.
 
 Kriteria selesai:
 
@@ -874,6 +874,15 @@ Kriteria selesai:
 - Runbook dapat mendeteksi dan memulihkan stale deployment tanpa menebak-nebak.
 - Dokumentasi arsitektur sesuai dengan dependency graph dan public API aktual.
 - Seluruh link, command, format, dan quality gate dokumentasi lulus di CI.
+
+Catatan penyelesaian 2026-07-26 UTC:
+
+- `progress.md` kini memisahkan status aktif dari arsip milestone historis. Status aktif mencatat final entry point `dist/app/server.js`, schema v4, readiness, safety mode, serta snapshot quality gate bertanggal; count lama tetap dipertahankan hanya sebagai sejarah.
+- README, WIKI, `.env.example`, architecture docs, dependency graph, baseline historis, dan runbook storage telah disinkronkan dengan release/build/schema identity serta deteksi stale deployment.
+- `docs/runbook-termux-release.md` menyediakan prosedur backup SQLite konsisten, quality gate, build, graceful stop/start, single-process check, identity/migration/readiness/safety validation, stale recovery, dan rollback code/database.
+- Public contract dan consumer-owned port delapan slice terdokumentasi; graph runtime/type-only aktif tetap acyclic dan sama dengan source setelah P2.
+- `src/documentation.test.ts` menjadi guardrail CI untuk local link, graph, public port, status final, checklist release, dan larangan direct internet exposure.
+- `npm run check` lulus dengan 184 test dan aggregate coverage 88,61% line / 72,76% branch / 88,15% function; `npm audit --omit=dev` melaporkan 0 vulnerability.
 
 ### Urutan Pelaksanaan P0–P3
 

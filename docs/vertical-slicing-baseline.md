@@ -1,14 +1,14 @@
 # Vertical Slicing Compatibility Baseline
 
-Baseline ini dicatat sebelum pemisahan composition root dan dipakai untuk memastikan refactor vertical slicing tidak mengubah kontrak runtime.
+Baseline ini dicatat sebelum pemisahan composition root dan dipakai untuk memastikan refactor vertical slicing tidak mengubah kontrak runtime. **Seluruh path, port, dan versi schema di dokumen ini adalah snapshot historis pra-refactor, bukan status deployment aktif atau petunjuk startup.** Status aktif berada di `progress.md`; runbook aktif berada di [`runbook-termux-release.md`](runbook-termux-release.md).
 
 ## Runtime
 
-- Entry point kompatibel: `src/server-bnb.ts`
-- Host default: `127.0.0.1`
-- Port default: `3000`
-- Database default: `data/bnb-viewer.sqlite`
-- Application schema version: `3`
+- Historical entry point: `src/server-bnb.ts`
+- Historical host default: `127.0.0.1`
+- Historical port default: `3000`
+- Historical database default: `data/bnb-viewer.sqlite`
+- Historical application schema version: `3`
 - Live execution tetap dikendalikan oleh `LIVE_EXECUTION_ENABLED` dan default-nya nonaktif.
 
 ## Kontrak Response Utama
@@ -116,7 +116,7 @@ Seluruh task dijalankan melalui `SchedulerRegistry`, sehingga overlap task denga
 
 ## SQLite
 
-Sebelum refactor:
+Sebelum refactor (historis):
 
 - `APPLICATION_SCHEMA_VERSION = 3`
 - `PRAGMA quick_check = ok`

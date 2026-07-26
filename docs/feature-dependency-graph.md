@@ -1,6 +1,6 @@
 # Feature Dependency Graph
 
-Snapshot setelah P1 (2026-07-26). `src/architecture.test.ts` memvalidasi edge ini dan menolak runtime cycle atau edge baru yang belum direview.
+Snapshot aktif setelah P2 (2026-07-26). `src/architecture.test.ts` memvalidasi edge ini dan menolak runtime cycle atau edge baru yang belum direview. Pemecahan repository P2 tidak menambah edge antarslice.
 
 ## Runtime edges
 
@@ -36,11 +36,11 @@ paper-agent -> lp-execution
 paper-agent -> market-data
 ```
 
-Type-only edge tidak menghasilkan module loading pada runtime. Edge tersebut tetap dicatat agar coupling kontrak terlihat dan dapat diperkecil melalui consumer-owned ports pada tahap berikutnya tanpa menyembunyikannya di `shared/`.
+Type-only edge tidak menghasilkan module loading pada runtime. Edge tersebut tetap dicatat agar coupling kontrak terlihat. Consumer mendefinisikan port kecil di `application/ports.ts`; `src/app/` menyuntikkan implementasinya tanpa memindahkan kontrak bisnis ke `shared/`.
 
 ## Public API policy
 
 - Feature consumer hanya mengimpor `features/<slice>/index.ts`.
 - Public index menggunakan explicit named exports; wildcard export dilarang.
-- Concrete store hanya diekspor jika dibutuhkan composition root atau compatibility test yang membuat fixture nyata.
+- Concrete store hanya diekspor jika dibutuhkan composition root atau test yang membuat fixture nyata; repository aggregate internal di belakang façade store tidak diekspor.
 - Adapter RPC, receipt verifier, dan detail infrastructure lain tidak menjadi public API slice.

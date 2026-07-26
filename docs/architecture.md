@@ -30,6 +30,23 @@ Sebuah feature tidak boleh mengimpor `app/`. Komunikasi antarslice harus melalui
 | `lp-execution`      | Position lifecycle, shadow gate, proposal, mint/exit, audit        |
 | `operations`        | Health/readiness dan storage maintenance                           |
 
+## Public Contract dan Consumer-owned Ports
+
+`index.ts` tiap slice tetap menjadi API lintas-slice/composition yang minimal. Kontrak utama saat ini:
+
+| Slice               | Public composition contract                                                                 | Consumer-owned port penting                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `market-data`       | `MarketDataService`, stores/read models, route/task registrar, schema contribution          | Menjadi implementasi `MarketHistoryReader`, `CurrentPoolStateReader`, dan `MarketCapturePort` milik consumer          |
+| `lp-analysis`       | `LpAnalysisService`, kalkulasi pure LP/IL/fee, route/task registrar                         | `MarketHistoryReader`, `CurrentPoolStateReader`, `PaperAnalysisReader`, `ActiveModelReader`, `ExecutionStatusReader`  |
+| `paper-agent`       | `PaperAgentService`, `AgentStore`, route/task registrar, schema contribution                | `PaperAgentRepository`, `MarketHistoryReader`, `ActiveModelReader`, `PositionLifecyclePort`, `ShadowValidationWriter` |
+| `aggressive-paper`  | `AggressivePaperService`, `AggressivePaperStore`, route/task registrar, schema contribution | Service dipakai melalui `AggressivePaperLifecyclePort` milik `paper-agent`                                            |
+| `directional-paper` | `DirectionalPaperService`, store, route/task registrar, backtest CLI, schema contribution   | Market reader disuntikkan melalui composition root                                                                    |
+| `learning`          | `LearningService`, `LifecycleActivationStore`, route/task registrar, schema contribution    | Menjadi implementasi `ActiveModelReader` dan lifecycle activation port milik consumer                                 |
+| `lp-execution`      | `ExecutionService`, lifecycle use case, stores, route/task registrar, schema contribution   | `PaperDecisionReader`, `ActiveModelReader`, `CurrentPoolHealthReader`, repository/readiness/lifecycle ports           |
+| `operations`        | `OperationsService`, `StorageMaintenanceService`, route/task registrar                      | Readiness dependencies disuntikkan composition root                                                                   |
+
+Port didefinisikan oleh consumer di `application/ports.ts` dan di-wire di `src/app/`; port tidak dipindahkan ke `shared/` hanya karena melintasi slice. Concrete repository internal dan adapter receipt/RPC tidak diekspor dari public index.
+
 ## Layer Dalam Slice
 
 Subdirektori dibuat hanya saat kompleksitas memerlukannya:
@@ -47,6 +64,8 @@ HTTP handler tidak menjalankan SQL atau menyalin rumus bisnis. Scheduler hanya m
 
 - Route feature diregistrasi oleh `src/app/runtime.ts` melalui public API setiap slice.
 - Schema dimiliki feature dan dikumpulkan secara deterministik di `src/app/migrations.ts`.
+- `src/app/database-bootstrap.ts` merekonsiliasi feature schema contribution secara transaksional lalu menjalankan migration immutable v1–v4 **sebelum** container membuka store. Constructor store production hanya membuka dan memvalidasi schema.
+- Store besar tetap mempunyai façade publik stabil, sedangkan query/invariant dikelompokkan pada repository internal per aggregate/use case; transaction boundary lintas tabel tidak dipindahkan atau dipecah.
 - `ScheduledTaskDefinition` dimiliki feature dan dikumpulkan di `src/app/scheduled-tasks.ts`.
 - Readiness critical scheduler berasal dari metadata task yang sama, bukan daftar nama terpisah.
 - Startup proses berada di `src/app/server.ts`; CLI backtest dikomposisi oleh `src/app/directional-backtest.ts`.
@@ -72,7 +91,9 @@ HTTP handler tidak menjalankan SQL atau menyalin rumus bisnis. Scheduler hanya m
 - tidak ada deep import antarslice atau import feature ke `app/`;
 - `shared/` tidak bergantung pada app/feature;
 - domain bebas dari Express, SQLite, scheduler, dan environment variable;
-- feature store memakai connection policy SQLite bersama;
+- feature store memakai connection policy SQLite bersama dan startup production mendahulukan bootstrap schema;
 - root `src/` hanya berisi test lintas aplikasi.
+
+`src/documentation.test.ts` memeriksa local Markdown link, sinkronisasi dependency graph dengan source, dokumentasi public port, final entry point/schema identity, checklist release, dan larangan direct internet exposure.
 
 CI menjalankan guardrail tersebut melalui `npm run check` bersama lint, format, build, seluruh test, dan coverage threshold.

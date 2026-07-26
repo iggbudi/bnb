@@ -1,6 +1,6 @@
 # Runbook Storage, Restore Backup, dan RPC Outage
 
-Dokumen ini untuk operator BNB LP Analyzer. Semua prosedur mempertahankan prinsip fail-closed: **jangan mengaktifkan live execution, jangan melepas kill switch, dan jangan mereset Shadow hanya untuk membuat readiness hijau**.
+Dokumen ini untuk operator BNB LP Analyzer. Semua prosedur mempertahankan prinsip fail-closed: **jangan mengaktifkan live execution, jangan melepas kill switch, dan jangan mereset Shadow hanya untuk membuat readiness hijau**. Untuk release rutin, process/build/schema identity, dan stale deployment gunakan [`runbook-termux-release.md`](runbook-termux-release.md).
 
 ## 1. Pemeriksaan Harian
 
@@ -32,6 +32,7 @@ Perubahan nilai dilakukan di `.env`, kemudian restart tertib:
 ```bash
 npm run background:stop
 npm run background:start
+npm run background:status
 curl -fsS http://127.0.0.1:3001/api/health/ready
 ```
 

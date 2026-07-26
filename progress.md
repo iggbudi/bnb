@@ -2,18 +2,21 @@
 
 Terakhir diperbarui: 2026-07-26 UTC
 
-## Status Saat Ini
+## Status Aktif
 
-- Server sehat di port `3001`.
-- Build TypeScript lulus.
-- Test: **137/137 lulus**.
+- Process entry point: `node dist/app/server.js` pada port `3001`.
+- Status script memvalidasi PID command, Git release revision, build timestamp, entry point, readiness, serta expected/applied schema identity; PID hidup saja tidak dianggap deployment sehat.
+- Application schema aktif: **v4** (`feature_schema_ownership_registry`); migration v1–v4 tercatat satu kali dan SQLite `quick_check` menghasilkan `ok`.
+- Deployment Termux terakhir diverifikasi **readiness OK** pada 2026-07-26 UTC.
+- Snapshot quality gate 2026-07-26: `npm run check` lulus dengan **184 test**, coverage line **88,61%**, branch **72,76%**, function **88,15%**. Jumlah test ini adalah snapshot bertanggal; hasil CI terbaru tetap menjadi sumber utama.
 - `npm audit --omit=dev`: 0 vulnerability.
-- SQLite `quick_check`: `ok`.
-- Live execution tetap **disabled**.
-- Emergency kill switch tetap **engaged**.
-- Lifecycle full-range aktif pada strategi `lifecycle-v2.1`.
-- Accounting fee full-range memakai `v3-fee-growth-v1`.
-- Shadow validation baru berjalan pada **run ID 2** dan belum qualified.
+- Live execution tetap **disabled**, emergency kill switch tetap **engaged**, signing/broadcast tidak tersedia, dan lifecycle tetap `SHADOW` pada run ID 2 yang belum qualified.
+- Strategi full-range aktif tetap `lifecycle-v2.1`; accounting fee memakai `v3-fee-growth-v1`.
+- Checklist release, deteksi stale deployment, rollback, dan validasi safety tersedia di [`docs/runbook-termux-release.md`](docs/runbook-termux-release.md).
+
+## Arsip Milestone Historis
+
+Bagian di bawah adalah catatan kondisi ketika milestone lama selesai. Path seperti `src/server-bnb.ts`/`src/bnb-app.ts`, migration v1–v3, jumlah test, coverage, dan status deployment di bagian ini **historis**, bukan petunjuk operasional atau kondisi source aktif. Gunakan **Status Aktif**, runbook release, dan hasil CI terbaru untuk kondisi sekarang.
 
 ## P0 — Selesai
 
@@ -210,21 +213,23 @@ GET /api/execution/status
 - Forward paper run ID 2 aktif dengan modal US$50; keputusan awal `WAIT/NO_DIRECTIONAL_EDGE`.
 - Keterbatasan eksplisit: data hanya sampled close pool per menit, bukan OHLC/perpetual native; tidak ada high/low intramenit, mark/index spread, order book, atau funding exchange. Funding sementara diasumsikan 0.
 
-## Perintah Verifikasi
+## Perintah Verifikasi Aktif
 
 ```bash
-npm run build
-npm test
+npm run check
 npm audit --omit=dev
 npm run background:status
 curl -fsS http://127.0.0.1:3001/api/health/live
 curl -fsS http://127.0.0.1:3001/api/health/ready
 curl -fsS http://127.0.0.1:3001/api/operations/storage
+curl -fsS http://127.0.0.1:3001/api/execution/status
 ```
+
+`npm run background:status` wajib gagal jika revision, entry point `dist/app/server.js`, expected schema, applied schema, atau readiness tidak cocok. Prosedur release lengkap tidak boleh digantikan hanya dengan command probe di atas.
 
 ## Aturan Keselamatan
 
-1. `LIVE_EXECUTION_ENABLED` tetap `false` selama P1/P2/P3 dan setelah deployment ini.
+1. `LIVE_EXECUTION_ENABLED` tetap `false` sampai ada prosedur aktivasi terpisah yang disetujui; release dokumentasi/refactor tidak boleh mengubahnya.
 2. Kill switch tetap engaged kecuali ada prosedur aktivasi terpisah yang disetujui.
 3. Jangan pernah menyimpan private key atau seed phrase di server.
 4. Exit yang mengurangi risiko harus tetap tersedia ketika entry terkunci.

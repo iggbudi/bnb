@@ -31,6 +31,8 @@ npm run background:stop    # hentikan background server
 
 Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:Boot dari sumber/signing yang sama dengan aplikasi Termux**, buka sekali, dan nonaktifkan battery optimization. Instalasi ini memakai Termux GitHub build, sehingga add-on harus memakai APK `github.debug` dari GitHub Releases—jangan mencampurnya dengan build F-Droid.
 
+`background:start` membangun dan menjalankan `node dist/app/server.js` sambil menginjeksikan Git revision serta build timestamp. Source saat ini mengharapkan application schema v4 (`feature_schema_ownership_registry`); `background:status` mengambil expected version dari build dan menolak PID stale bila command, revision, entry point, expected/applied schema, atau readiness tidak cocok. Release jangan dilakukan hanya dengan mengganti file/build saat process lama masih hidup; ikuti [`docs/runbook-termux-release.md`](docs/runbook-termux-release.md).
+
 ## 🔒 Mode Deployment
 
 - **Localhost (default):** `HOST=127.0.0.1`; origin browser localhost dicantumkan di `CORS_ALLOWED_ORIGINS`.
@@ -42,7 +44,7 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 
 ## 🧱 Struktur Aplikasi dan Quality Gates
 
-- `src/app/` adalah composition root untuk config, HTTP, migration/task aggregation, process lifecycle, dan CLI entry point.
+- `src/app/` adalah composition root untuk config, HTTP, schema bootstrap/migration/task aggregation, process lifecycle, dan CLI entry point. Bootstrap menyelesaikan schema sebelum store/service dibuat.
 - Delapan slice di `src/features/` memiliki domain, application service, persistence, route, task, CLI, dan test masing-masing.
 - `src/shared/` hanya berisi concern teknis netral; arah dependensi dijaga sebagai `app -> features -> shared`.
 - Frontend memakai `public/app.js` sebagai bootstrap tunggal, helper netral di `public/shared/`, dan renderer/polling terlokalisasi di `public/features/`.
@@ -235,7 +237,7 @@ SNAPSHOT_RETENTION_DAYS=60
 BACKUP_RETENTION_FILES=21
 ```
 
-Nilai snapshot dibatasi 30–90 hari dan jumlah backup harian dibatasi 14–30 file. Status aktual tersedia di `GET /api/operations/storage` dan menjadi bagian dari telemetry scheduler/readiness. Prosedur restore SQLite serta recovery BSC RPC outage tersedia di [`docs/runbook-storage-and-rpc-recovery.md`](docs/runbook-storage-and-rpc-recovery.md).
+Nilai snapshot dibatasi 30–90 hari dan jumlah backup harian dibatasi 14–30 file. Status aktual tersedia di `GET /api/operations/storage` dan menjadi bagian dari telemetry scheduler/readiness. Prosedur restore SQLite serta recovery BSC RPC outage tersedia di [`docs/runbook-storage-and-rpc-recovery.md`](docs/runbook-storage-and-rpc-recovery.md); checklist backup/build/stop/start/identity/migration/safety/rollback Termux tersedia di [`docs/runbook-termux-release.md`](docs/runbook-termux-release.md).
 
 ## 📊 Data Source
 
