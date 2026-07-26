@@ -5,12 +5,13 @@ import test from 'node:test';
 test('agent dashboard separates actual aggressive portfolio from overlapping full-range signals', () => {
   const html = readFileSync('public/index.html', 'utf8');
   const dashboard = readFileSync('public/dashboard.js', 'utf8');
-  const server = readFileSync('src/app/runtime.ts', 'utf8');
+  const routes = readFileSync('src/features/aggressive-paper/http/routes.ts', 'utf8');
+  const runtime = readFileSync('src/app/runtime.ts', 'utf8');
   const frontend = `${html}\n${dashboard}`;
 
-  assert.match(server, /\/api\/agent\/aggressive-performance/);
-  assert.match(server, /\/api\/agent\/aggressive-positions\/:id/);
-  assert.match(server, /processAggressivePaperLifecycle/);
+  assert.match(routes, /\/api\/agent\/aggressive-performance/);
+  assert.match(routes, /\/api\/agent\/aggressive-positions\/:id/);
+  assert.match(runtime, /processAggressivePaperLifecycle/);
   assert.match(frontend, /Performa Paper Agresif · Portfolio Aktual/);
   assert.match(frontend, /Nilai Portfolio Jika Exit/);
   assert.match(frontend, /Fee Paper Teramati On-chain/);

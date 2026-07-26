@@ -35,6 +35,7 @@ import { runDirectionalForwardCycle } from '../directional-paper-manager.js';
 import { DEFAULT_DIRECTIONAL_CONFIG, DIRECTIONAL_STRATEGY_VERSION } from '../directional-strategy.js';
 import { getPoolByAddress } from '../dexscreener.js';
 import { evaluateExecutionReadiness } from '../execution-control.js';
+import { registerAggressivePaperRoutes } from '../features/aggressive-paper/index.js';
 import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
 import {
   estimateFullRangeFeeBetweenCheckpoints,
@@ -511,36 +512,6 @@ function buildCurrentHighRiskPlan(
     historyCoveragePercent: stats7d?.coveragePercent ?? 0,
     historyPrices: history7d.map(snapshot => snapshot.price),
   });
-}
-
-function getAggressivePaperStatus() {
-  const performance = aggressivePaperStore.getPerformance(AGGRESSIVE_INITIAL_CAPITAL_USD);
-  const selectedPosition =
-    performance.activePosition ?? aggressivePaperStore.getRecentPositions(1)[0] ?? null;
-  return {
-    enabled: AGGRESSIVE_PAPER_ENABLED,
-    mode: 'PAPER_CONCENTRATED_PORTFOLIO',
-    strategyVersion: AGGRESSIVE_PAPER_STRATEGY_VERSION,
-    liveExecutionEnabled: false,
-    policy: {
-      initialCapitalUsd: AGGRESSIVE_INITIAL_CAPITAL_USD,
-      targetReturnPercent: AGGRESSIVE_TARGET_RETURN_PERCENT,
-      stopLossPercent: AGGRESSIVE_STOP_LOSS_PERCENT,
-      outOfRangeConfirmationMinutes: AGGRESSIVE_OUT_OF_RANGE_CONFIRMATION_MINUTES,
-      maxRecentersPerCycle: AGGRESSIVE_MAX_RECENTERS,
-      recenterSlippageBps: AGGRESSIVE_RECENTER_SLIPPAGE_BPS,
-      maxHoldHours: AGGRESSIVE_MAX_HOLD_HOURS,
-      normalCooldownHours: AGGRESSIVE_NORMAL_COOLDOWN_HOURS,
-      riskCooldownHours: AGGRESSIVE_RISK_COOLDOWN_HOURS,
-      feeSource: 'ONCHAIN_FEE_GROWTH_GLOBAL_X128_WITH_IN_RANGE_OCCUPANCY',
-      onePositionAtATime: true,
-      capitalCompoundsBetweenCompletedCycles: true,
-    },
-    performance,
-    recentPositions: aggressivePaperStore.getRecentPositions(20),
-    recentActions: selectedPosition ? aggressivePaperStore.getActions(selectedPosition.id, 50) : [],
-    recentEvaluations: selectedPosition ? aggressivePaperStore.getEvaluations(selectedPosition.id, 100) : [],
-  };
 }
 
 function runAggressivePaperLifecycle(
@@ -1623,27 +1594,26 @@ app.get('/api/positions/:id', (req, res) => {
 });
 
 // Current high-risk/high-gain concentrated strategy advisory and actual paper portfolio
-app.get('/api/agent/high-risk-plan', rpcHeavyLimit, async (req, res) => {
-  try {
+registerAggressivePaperRoutes(app, {
+  store: aggressivePaperStore,
+  enabled: AGGRESSIVE_PAPER_ENABLED,
+  strategyVersion: AGGRESSIVE_PAPER_STRATEGY_VERSION,
+  policy: {
+    initialCapitalUsd: AGGRESSIVE_INITIAL_CAPITAL_USD,
+    targetReturnPercent: AGGRESSIVE_TARGET_RETURN_PERCENT,
+    stopLossPercent: AGGRESSIVE_STOP_LOSS_PERCENT,
+    outOfRangeConfirmationMinutes: AGGRESSIVE_OUT_OF_RANGE_CONFIRMATION_MINUTES,
+    maxRecentersPerCycle: AGGRESSIVE_MAX_RECENTERS,
+    recenterSlippageBps: AGGRESSIVE_RECENTER_SLIPPAGE_BPS,
+    maxHoldHours: AGGRESSIVE_MAX_HOLD_HOURS,
+    normalCooldownHours: AGGRESSIVE_NORMAL_COOLDOWN_HOURS,
+    riskCooldownHours: AGGRESSIVE_RISK_COOLDOWN_HOURS,
+  },
+  highRiskPlanMiddleware: rpcHeavyLimit,
+  async loadHighRiskPlan() {
     const [pair, onchain] = await Promise.all([getWBNBUSDTPair(), captureOnchainPoolState()]);
-    const analysis = analyzeWBNBUSDT(pair);
-    const plan = buildCurrentHighRiskPlan(analysis, onchain);
-    res.json({ success: true, data: plan, timestamp: new Date().toISOString() });
-  } catch (error) {
-    res.status(503).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'High-risk strategy plan unavailable',
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-app.get('/api/agent/aggressive-performance', (req, res) => {
-  res.json({
-    success: true,
-    data: getAggressivePaperStatus(),
-    timestamp: new Date().toISOString(),
-  });
+    return buildCurrentHighRiskPlan(analyzeWBNBUSDT(pair), onchain);
+  },
 });
 
 registerDirectionalPaperRoutes(app, {
@@ -1651,36 +1621,6 @@ registerDirectionalPaperRoutes(app, {
   enabled: DIRECTIONAL_PAPER_ENABLED,
   strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
   config: DEFAULT_DIRECTIONAL_CONFIG,
-});
-
-app.get('/api/agent/aggressive-positions/:id', (req, res) => {
-  try {
-    const id = Math.floor(parsePositiveNumber(req.params.id, 'id'));
-    const position = aggressivePaperStore.getPosition(id);
-    if (!position) {
-      res.status(404).json({
-        success: false,
-        error: 'Aggressive paper position not found',
-        timestamp: new Date().toISOString(),
-      });
-      return;
-    }
-    res.json({
-      success: true,
-      data: {
-        position,
-        actions: aggressivePaperStore.getActions(id, 1_000),
-        evaluations: aggressivePaperStore.getEvaluations(id, 10_000),
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid aggressive position parameter',
-      timestamp: new Date().toISOString(),
-    });
-  }
 });
 
 // Paper agent status and immutable hourly decisions
