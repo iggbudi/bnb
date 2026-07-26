@@ -39,6 +39,7 @@ import { registerAggressivePaperRoutes } from '../features/aggressive-paper/inde
 import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
 import { registerMarketDataRoutes } from '../features/market-data/index.js';
 import { registerOperationsRoutes } from '../features/operations/index.js';
+import { registerPaperAgentRoutes } from '../features/paper-agent/index.js';
 import {
   estimateFullRangeFeeBetweenCheckpoints,
   FULL_RANGE_FEE_ACCOUNTING_VERSION,
@@ -1066,21 +1067,6 @@ function isExecutionAdminAuthorized(authorization: string | undefined): boolean 
   return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
 
-function parseAgentHorizon(value: unknown): 1 | 6 | 24 | 168 {
-  const horizon = parsePositiveNumberOrDefault(value, 'horizon', 24);
-  if (!PAPER_AGENT_HORIZONS.includes(horizon as 1 | 6 | 24 | 168)) {
-    throw new Error('Parameter "horizon" must be one of: 1, 6, 24, 168');
-  }
-  return horizon as 1 | 6 | 24 | 168;
-}
-
-function getNextAgentRunAt(now = new Date()): string {
-  const next = new Date(now);
-  next.setUTCMinutes(0, 0, 0);
-  next.setUTCHours(next.getUTCHours() + 1);
-  return next.toISOString();
-}
-
 function buildCurrentInvestmentProjection(
   analysis: WBNBUSDTAnalysis,
   onchain: PancakeV3OnchainState,
@@ -1492,148 +1478,67 @@ registerDirectionalPaperRoutes(app, {
   config: DEFAULT_DIRECTIONAL_CONFIG,
 });
 
-// Paper agent status and immutable hourly decisions
-app.get('/api/agent/status', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      mode: 'paper',
-      strategyVersion: PAPER_AGENT_STRATEGY_VERSION,
-      investment: PAPER_AGENT_INVESTMENT,
-      decisionIntervalHours: 1,
-      decisionSemantics: 'HOURLY_ENTRY_SIGNAL_NOT_TRANSACTION',
-      entryPolicy: {
-        forecastDays: ENTRY_FORECAST_DAYS,
-        minimumHistoryCoveragePercent: ENTRY_HISTORY_COVERAGE_PERCENT,
-        feeRetentionFactor: ENTRY_FEE_RETENTION_FACTOR,
-        minimumNetEdgeUsd: ENTRY_MINIMUM_NET_EDGE_USD,
-        includesStressIL: true,
-        includesEntryAndExitGas: true,
-        transactionPath: 'BALANCED_TOKENS_MINT_WITHDRAW',
-        implicitSwapSlippageUsd: 0,
-      },
-      highRiskAdvisoryPolicy: {
-        targetMonthlyReturnPercent: HIGH_RISK_TARGET_MONTHLY_RETURN_PERCENT,
-        feeRetentionFactor: HIGH_RISK_FEE_RETENTION_FACTOR,
-        maxRecentersPerMonth: HIGH_RISK_MAX_RECENTERS_PER_MONTH,
-        recenterSlippageBps: HIGH_RISK_RECENTER_SLIPPAGE_BPS,
-        stopLossPercent: HIGH_RISK_STOP_LOSS_PERCENT,
-        minimumHistoryCoveragePercent: HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT,
-        historyWindowHours: HIGH_RISK_HISTORY_WINDOW_HOURS,
-        conservativeVolumeSource: 'MIN_CURRENT_AND_7D_AVERAGE',
-        executionEnabled: false,
-        mode: AGGRESSIVE_PAPER_ENABLED ? 'PAPER_PORTFOLIO_ACTIVE' : 'PAPER_DISABLED',
-        performanceEndpoint: '/api/agent/aggressive-performance',
-      },
-      directionalPaperPolicy: {
-        strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
-        enabled: DIRECTIONAL_PAPER_ENABLED,
-        decisionIntervalMinutes: 1,
-        initialCapitalUsd: DEFAULT_DIRECTIONAL_CONFIG.initialCapitalUsd,
-        leverage: DEFAULT_DIRECTIONAL_CONFIG.leverage,
-        marginFraction: DEFAULT_DIRECTIONAL_CONFIG.marginFraction,
-        liveExecutionEnabled: false,
-        performanceEndpoint: '/api/agent/directional-performance',
-      },
-      totalDecisions: agentStore.count(),
-      latestDecision: agentStore.getRecent(1)[0] ?? null,
-      outcomeCounts: agentStore.outcomeCounts(),
-      outcomeInterpretation: {
-        version: OUTCOME_INTERPRETATION_VERSION,
-        counts: agentStore.outcomeInterpretationCounts(),
-        entryVerdictHorizonHours: ENTRY_VERDICT_HORIZON_HOURS,
-        earlyDiagnosticHorizonsHours: [1, 6, 24],
-        minimumActionableEdgeUsd: MINIMUM_ACTIONABLE_EDGE_USD,
-        assumedEntryGasUnits: ASSUMED_ENTRY_GAS_UNITS,
-        assumedExitGasUnits: ASSUMED_EXIT_GAS_UNITS,
-        transactionPath: 'BALANCED_TOKENS_MINT_WITHDRAW',
-        applicableSwapSlippageUsd: 0,
-        optionalSwapCostedOnlyWhenRequested: true,
-        rawOutcomesImmutable: true,
-      },
-      legacyOutcomeAssessment: {
-        version: OUTCOME_ASSESSMENT_VERSION,
-        counts: agentStore.outcomeAssessmentCounts(),
-        slippageBpsPerLeg: ECONOMIC_SLIPPAGE_BPS_PER_LEG,
-        operational: false,
-        retainedForAudit: true,
-      },
-      evaluationHorizonsHours: PAPER_AGENT_HORIZONS,
-      nextDecisionAt: getNextAgentRunAt(),
-      outcomeEvaluationEnabled: true,
-      reflection: getReflectionStatus(),
-      learning: getLearningStatus(),
-      learningEnabled: getLifecycleCompatibleActiveModel() !== null,
+registerPaperAgentRoutes(app, {
+  store: agentStore,
+  policy: {
+    strategyVersion: PAPER_AGENT_STRATEGY_VERSION,
+    investment: PAPER_AGENT_INVESTMENT,
+    entryPolicy: {
+      forecastDays: ENTRY_FORECAST_DAYS,
+      minimumHistoryCoveragePercent: ENTRY_HISTORY_COVERAGE_PERCENT,
+      feeRetentionFactor: ENTRY_FEE_RETENTION_FACTOR,
+      minimumNetEdgeUsd: ENTRY_MINIMUM_NET_EDGE_USD,
+      includesStressIL: true,
+      includesEntryAndExitGas: true,
+      transactionPath: 'BALANCED_TOKENS_MINT_WITHDRAW',
+      implicitSwapSlippageUsd: 0,
     },
-    timestamp: new Date().toISOString(),
-  });
-});
-
-app.get('/api/agent/decisions', (req, res) => {
-  try {
-    const requestedLimit = req.query.limit === undefined ? 24 : parsePositiveNumber(req.query.limit, 'limit');
-    const limit = Math.min(1_000, Math.max(1, Math.floor(requestedLimit)));
-
-    res.json({
-      success: true,
-      data: {
-        count: agentStore.count(),
-        decisions: agentStore.getRecent(limit),
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid agent history parameters',
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-app.get('/api/agent/outcomes', (req, res) => {
-  try {
-    const requestedLimit =
-      req.query.limit === undefined ? 100 : parsePositiveNumber(req.query.limit, 'limit');
-    const limit = Math.min(1_000, Math.max(1, Math.floor(requestedLimit)));
-    const horizon = req.query.horizon === undefined ? null : parseAgentHorizon(req.query.horizon);
-
-    res.json({
-      success: true,
-      data: {
-        ...agentStore.outcomeCounts(horizon ?? undefined),
-        horizon,
-        outcomes:
-          horizon === null
-            ? agentStore.getRecentOutcomes(limit)
-            : agentStore.getOutcomeDetails(horizon, limit),
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid outcome history parameters',
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-app.get('/api/agent/performance', (req, res) => {
-  try {
-    const horizon = parseAgentHorizon(req.query.horizon);
-    res.json({
-      success: true,
-      data: agentStore.getPerformance(horizon),
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid performance parameters',
-      timestamp: new Date().toISOString(),
-    });
-  }
+    highRiskAdvisoryPolicy: {
+      targetMonthlyReturnPercent: HIGH_RISK_TARGET_MONTHLY_RETURN_PERCENT,
+      feeRetentionFactor: HIGH_RISK_FEE_RETENTION_FACTOR,
+      maxRecentersPerMonth: HIGH_RISK_MAX_RECENTERS_PER_MONTH,
+      recenterSlippageBps: HIGH_RISK_RECENTER_SLIPPAGE_BPS,
+      stopLossPercent: HIGH_RISK_STOP_LOSS_PERCENT,
+      minimumHistoryCoveragePercent: HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT,
+      historyWindowHours: HIGH_RISK_HISTORY_WINDOW_HOURS,
+      conservativeVolumeSource: 'MIN_CURRENT_AND_7D_AVERAGE',
+      executionEnabled: false,
+      mode: AGGRESSIVE_PAPER_ENABLED ? 'PAPER_PORTFOLIO_ACTIVE' : 'PAPER_DISABLED',
+      performanceEndpoint: '/api/agent/aggressive-performance',
+    },
+    directionalPaperPolicy: {
+      strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
+      enabled: DIRECTIONAL_PAPER_ENABLED,
+      decisionIntervalMinutes: 1,
+      initialCapitalUsd: DEFAULT_DIRECTIONAL_CONFIG.initialCapitalUsd,
+      leverage: DEFAULT_DIRECTIONAL_CONFIG.leverage,
+      marginFraction: DEFAULT_DIRECTIONAL_CONFIG.marginFraction,
+      liveExecutionEnabled: false,
+      performanceEndpoint: '/api/agent/directional-performance',
+    },
+    outcomeInterpretation: {
+      version: OUTCOME_INTERPRETATION_VERSION,
+      entryVerdictHorizonHours: ENTRY_VERDICT_HORIZON_HOURS,
+      earlyDiagnosticHorizonsHours: [1, 6, 24],
+      minimumActionableEdgeUsd: MINIMUM_ACTIONABLE_EDGE_USD,
+      assumedEntryGasUnits: ASSUMED_ENTRY_GAS_UNITS,
+      assumedExitGasUnits: ASSUMED_EXIT_GAS_UNITS,
+      transactionPath: 'BALANCED_TOKENS_MINT_WITHDRAW',
+      applicableSwapSlippageUsd: 0,
+      optionalSwapCostedOnlyWhenRequested: true,
+      rawOutcomesImmutable: true,
+    },
+    legacyOutcomeAssessment: {
+      version: OUTCOME_ASSESSMENT_VERSION,
+      slippageBpsPerLeg: ECONOMIC_SLIPPAGE_BPS_PER_LEG,
+      operational: false,
+      retainedForAudit: true,
+    },
+    evaluationHorizonsHours: PAPER_AGENT_HORIZONS,
+  },
+  getReflectionStatus,
+  getLearningStatus,
+  isLearningEnabled: () => getLifecycleCompatibleActiveModel() !== null,
 });
 
 app.get('/api/agent/models', (req, res) => {
@@ -1645,27 +1550,6 @@ app.get('/api/agent/models', (req, res) => {
     },
     timestamp: new Date().toISOString(),
   });
-});
-
-app.get('/api/agent/reflections', (req, res) => {
-  try {
-    const requestedLimit = req.query.limit === undefined ? 20 : parsePositiveNumber(req.query.limit, 'limit');
-    const limit = Math.min(100, Math.max(1, Math.floor(requestedLimit)));
-    res.json({
-      success: true,
-      data: {
-        ...getReflectionStatus(),
-        reflections: agentStore.getRecentReflections(limit),
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid reflection parameters',
-      timestamp: new Date().toISOString(),
-    });
-  }
 });
 
 app.get('/api/execution/status', (req, res) => {
