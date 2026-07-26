@@ -688,3 +688,182 @@ Vertical slicing dianggap selesai ketika:
 Mulai dari **directional-paper** sebagai pilot slice karena batas fiturnya paling jelas dan sudah memiliki strategy, manager, store, CLI, API, scheduler, dashboard, serta test. Setelah pola terbukti, gunakan pola yang sama untuk `aggressive-paper`. Jangan memulai dari `lp-execution` karena slice tersebut memiliki dependency dan risiko operasional paling tinggi.
 
 Estimasi hasil akhir yang sehat bukan sekadar memindahkan file, melainkan membuat setiap fitur dapat dikembangkan melalui satu public contract dengan wiring terpusat dan dependency yang dapat diuji.
+
+## 14. Backlog Pasca-Vertical-Slicing (P0–P3)
+
+Analisis 2026-07-26 menemukan bahwa struktur akhir sudah sehat dan `npm run check` lulus dengan 161 test, coverage line 84,91%, branch 71,91%, serta function 85,70%. Backlog berikut menangani deployment drift, jalur execution berisiko tinggi, coupling antarslice, lifecycle database, dan dokumentasi tanpa mengubah strategi bisnis atau safety gate.
+
+Aturan untuk seluruh prioritas:
+
+1. Pertahankan endpoint, bentuk response, environment variable, interval scheduler, schema/data, dan perilaku UI kecuali perubahan additive yang terdokumentasi.
+2. Live execution harus tetap disabled, emergency stop tetap engaged, dan server tetap tidak memiliki signing/broadcast authority selama pekerjaan.
+3. Buat backup konsisten sebelum perubahan startup atau migration dan jangan mengedit migration v1–v4 yang sudah dapat diterapkan.
+4. Setiap tahap wajib menjalankan `npm run check`, `npm audit --omit=dev`, migration compatibility test, `PRAGMA quick_check`, serta smoke test background process.
+5. Refactor structural dan perubahan behavior/hardening harus dipisahkan dalam commit yang dapat di-review.
+
+### P0 — Sinkronkan Deployment Aktif dengan Source
+
+Temuan audit:
+
+- Background PID aktif masih menjalankan entry point lama `node dist/server-bnb.js` yang sudah dihapus.
+- Source dan script final menggunakan `node dist/app/server.js`.
+- Database/deployment aktif masih melaporkan migration v3, sedangkan source terbaru mempunyai migration v4 `feature_schema_ownership_registry`.
+- `scripts/status-background.sh` hanya memeriksa PID dan liveness sehingga tidak mendeteksi proses/build lama.
+
+Pekerjaan:
+
+- [x] Buat backup pra-deployment dan catat versi migration, safety flags, serta status shadow/lifecycle sebelum restart.
+- [x] Hentikan proses lama secara graceful dan pastikan tidak ada listener atau scheduler ganda yang tertinggal.
+- [x] Build lalu jalankan server melalui `dist/app/server.js` menggunakan script background final.
+- [x] Verifikasi migration v4 diterapkan tepat sekali dan `PRAGMA quick_check` menghasilkan `ok`.
+- [x] Verifikasi liveness, readiness, freshness market/on-chain, seluruh scheduler, dan storage maintenance kembali sehat.
+- [x] Verifikasi live execution tetap disabled, kill switch tetap engaged, mode lifecycle tidak berubah secara tidak sengaja, dan signing/broadcast tetap tidak tersedia.
+- [x] Tambahkan release/build identity dan expected schema version pada status operasional secara additive.
+- [x] Perkuat `scripts/status-background.sh` agar memvalidasi command/entry point dan schema/build identity, bukan hanya PID serta `/api/health/live`.
+- [x] Tambahkan test script/status yang gagal ketika PID hidup tetapi menjalankan entry point atau schema version yang tidak sesuai.
+
+Kriteria selesai:
+
+- [x] Proses aktif terbukti menjalankan `dist/app/server.js`.
+- [x] Readiness melaporkan migration v4 dan seluruh check wajib hijau.
+- [x] Status script menolak stale deployment.
+- [x] Tidak ada perubahan pada data paper/shadow, execution control, atau kontrak API yang sudah ada.
+
+Catatan penyelesaian 2026-07-26 UTC:
+
+- Backup konsisten dibuat di `backups/bnb-viewer-pre-deployment-p0-2026-07-26T15-07-00Z.sqlite`; baseline pra-restart disimpan di log operasional lokal.
+- Proses legacy dihentikan secara graceful dan diganti satu proses `node dist/app/server.js`.
+- Migration v4 tercatat satu kali, `PRAGMA quick_check` menghasilkan `ok`, seluruh readiness check hijau, dan sembilan scheduler kembali `IDLE` tanpa error.
+- Execution tetap `LOCKED`: live execution disabled, emergency stop engaged, lifecycle tetap `SHADOW`, shadow run tetap id 2, serta signing/broadcast tidak tersedia.
+- `npm run check` lulus dengan 162 test, `npm audit --omit=dev` melaporkan 0 vulnerability, migration compatibility test lulus, dan smoke test deployment lulus.
+
+### P1 — Tutup Risiko Execution dan Dependency Antarslice
+
+#### P1.1 Coverage jalur execution kritis
+
+Coverage agregat sudah kuat, tetapi audit menunjukkan:
+
+- `src/features/lp-execution/http/execution-routes.ts`: line 38,92%, branch 29,63%.
+- `src/features/lp-execution/infrastructure/pancakeswap-v3-onchain.ts`: line 60%.
+- Test route saat ini terutama mencakup read path dan penolakan write tanpa otorisasi.
+
+Pekerjaan:
+
+- [ ] Tambahkan integration test authenticated untuk kill switch, proposal entry, review, immutable transaction plan, dan mint receipt.
+- [ ] Tambahkan integration test authenticated untuk exit proposal, review, immutable exit plan, ordered receipts, settlement, dan realized-loss update.
+- [ ] Uji payload malformed, token salah, proposal expired, replay/idempotency, state transition ilegal, wallet mismatch, chain mismatch, calldata mismatch, deadline, receipt gagal, dan konfirmasi kurang.
+- [ ] Uji kegagalan/timeout RPC pada setiap tahap dan pastikan adapter serta execution readiness selalu fail-closed.
+- [ ] Gunakan fake RPC/store deterministik; test tidak boleh membutuhkan jaringan, wallet, private key, signing, atau broadcast nyata.
+- [ ] Tambahkan regression test bahwa emergency stop tidak dapat dibypass untuk entry tetapi tidak memblokir jalur exit pengurang risiko yang terotorisasi.
+- [ ] Naikkan coverage file execution route dan adapter berdasarkan branch keamanan yang bermakna, bukan sekadar mengejar aggregate threshold.
+
+#### P1.2 Hilangkan cycle dan perkecil public API slice
+
+Temuan audit:
+
+- Guardrail melarang deep import, tetapi belum melarang dependency cycle antarslice.
+- `market-data` memakai utility runtime dari `lp-execution`, sementara `lp-execution` bergantung kembali pada `market-data`.
+- `lp-analysis`, `paper-agent`, `learning`, dan `lp-execution` memiliki dependency dua arah melalui public barrel.
+- Banyak `index.ts` memakai `export *` dan mengekspos domain, application, serta infrastructure sekaligus.
+
+Pekerjaan:
+
+- [ ] Catat dependency graph runtime dan type-only saat ini sebagai baseline otomatis.
+- [ ] Definisikan port kecil pada consumer untuk market history, current pool state, paper decision, active model, lifecycle, dan execution status.
+- [ ] Inject implementasi port di `src/app/`; hindari application service bergantung langsung pada concrete store slice lain.
+- [ ] Putus cycle `market-data <-> lp-execution` terlebih dahulu dengan memindahkan primitive/read adapter pool PancakeSwap ke owner yang tepat tanpa membuat business dumping ground di `shared/`.
+- [ ] Putus cycle `lp-analysis <-> paper-agent/lp-execution` dan `paper-agent <-> learning/lp-execution` secara bertahap melalui kontrak eksplisit atau orchestration di `app/`.
+- [ ] Ganti wildcard barrel dengan export eksplisit dan public contract minimal.
+- [ ] Tambahkan architecture test yang menolak runtime cycle, concrete infrastructure export yang tidak disetujui, dan penambahan dependency edge di luar allowlist transisi.
+- [ ] Hapus allowlist transisi setelah graph menjadi acyclic.
+
+Kriteria selesai:
+
+- Seluruh branch execution yang berdampak pada otorisasi, uang, state transition, atau receipt mempunyai test positif dan negatif.
+- Tidak ada runtime cycle antarslice.
+- `index.ts` hanya mengekspor kontrak yang dibutuhkan consumer.
+- `npm run check` dan seluruh compatibility baseline tetap lulus.
+
+### P2 — Rapikan Lifecycle Database dan Hotspot Maintainability
+
+#### P2.1 Satu jalur bootstrap schema
+
+Temuan audit:
+
+- Constructor store masih menjalankan DDL/schema ensure.
+- `BnbServiceContainer` membuka beberapa store sebelum application migration dijalankan.
+- Schema contribution di migration registry dan schema creation di constructor membentuk dua jalur inisialisasi.
+
+Pekerjaan:
+
+- [ ] Tambahkan characterization test untuk database kosong, database legacy tanpa registry, serta database migration v1, v2, v3, dan v4.
+- [ ] Bentuk factory startup yang menyelesaikan bootstrap/migration sebelum store dan service dibuat.
+- [ ] Gunakan feature schema contribution sebagai satu sumber definisi schema tanpa mengubah migration v1–v4 yang sudah tercatat.
+- [ ] Setelah bootstrap terpusat terbukti kompatibel, ubah constructor store agar membuka serta memvalidasi schema, bukan melakukan migration tersembunyi.
+- [ ] Pastikan kegagalan migration menutup seluruh connection dan tidak meninggalkan container setengah terinisialisasi.
+- [ ] Uji startup paralel/restart, idempotency, rollback, index reconciliation, foreign key policy, WAL, dan database lama hasil backup.
+
+#### P2.2 Pecah modul besar berdasarkan use case
+
+Hotspot saat audit:
+
+- `agent-store.ts`: 1.289 baris.
+- `execution-store.ts`: 1.155 baris.
+- `position-store.ts`: 1.065 baris.
+- `aggressive-paper-store.ts`: 800 baris.
+- `execution-routes.ts`: 686 baris.
+
+Pekerjaan:
+
+- [ ] Pecah execution HTTP menjadi control, entry proposal, mint settlement, exit proposal, dan exit settlement route registrar.
+- [ ] Pecah store berdasarkan aggregate/repository yang mempunyai transaksi dan invariants jelas; jangan membagi hanya berdasarkan jumlah baris.
+- [ ] Pertahankan transaksi atomik lintas tabel melalui unit-of-work atau transaction boundary yang eksplisit.
+- [ ] Pertahankan façade/public contract sementara selama caller dimigrasikan, lalu hapus compatibility layer pada akhir tahap.
+- [ ] Tambahkan test transaksi dan invariant sebelum memindahkan query.
+
+#### P2.3 Bound resource operasional
+
+- [ ] Tambahkan expiry cleanup atau bounded LRU pada key `FixedWindowRateLimiter` agar `Map` tidak tumbuh tanpa batas.
+- [ ] Uji banyak IP/key, reset window, cleanup, `Retry-After`, dan mode `TRUST_PROXY`.
+- [ ] Dokumentasikan bahwa limiter tetap process-local dan deployment multi-instance membutuhkan shared limiter.
+
+Kriteria selesai:
+
+- Migration selesai sebelum store digunakan dan hanya ada satu jalur perubahan schema.
+- Database kosong serta seluruh versi fixture lama dapat startup secara idempotent.
+- Hotspot terpecah tanpa mengubah transaksi, endpoint, atau safety behavior.
+- Rate limiter mempunyai batas memori yang teruji.
+
+### P3 — Sinkronkan Dokumentasi dan Guardrail Operasional
+
+Temuan audit:
+
+- Bagian status teratas `progress.md` masih melaporkan 137 test dan migration v3.
+- Beberapa referensi aktif masih menyebut `src/server-bnb.ts`, `src/bnb-app.ts`, atau path sebelum vertical slicing.
+- Catatan milestone historis bercampur dengan status deployment saat ini.
+
+Pekerjaan:
+
+- [ ] Perbarui status aktif di `progress.md` setelah P0 selesai: entry point, migration, jumlah test, coverage, dan health deployment.
+- [ ] Tandai path/count lama sebagai catatan historis atau ganti hanya bagian yang mengklaim sebagai kondisi aktif.
+- [ ] Sinkronkan `README.md`, `WIKI.md`, architecture docs, runbook, dan `.env.example` dengan build/schema identity serta prosedur deteksi stale deployment.
+- [ ] Perbarui diagram dependency setelah P1 dan dokumentasikan public port setiap slice.
+- [ ] Hindari hard-coded test count pada status permanen bila mudah basi; tautkan ke hasil CI atau tulis tanggal snapshot dengan jelas.
+- [ ] Tambahkan checklist release Termux: backup, build, stop, start, process identity, migration, readiness, execution safety, dan rollback.
+- [ ] Verifikasi dokumentasi tidak menyarankan membuka service langsung ke internet; mode LAN/reverse proxy harus tetap eksplisit sebagai deployment tepercaya.
+
+Kriteria selesai:
+
+- Tidak ada status aktif yang menunjuk entry point atau migration lama.
+- Runbook dapat mendeteksi dan memulihkan stale deployment tanpa menebak-nebak.
+- Dokumentasi arsitektur sesuai dengan dependency graph dan public API aktual.
+- Seluruh link, command, format, dan quality gate dokumentasi lulus di CI.
+
+### Urutan Pelaksanaan P0–P3
+
+1. Selesaikan P0 sebelum refactor lain agar pengujian operasional memakai build yang benar.
+2. Kerjakan P1.1 sebelum memecah execution route/store agar test menjadi safety net.
+3. Kerjakan P1.2 per cycle kecil dan commit terpisah; jangan melakukan big-bang rewrite.
+4. Kerjakan P2.1 sebelum P2.2 supaya lifecycle database stabil sebelum repository dipecah.
+5. Kerjakan P2.3 secara independen setelah test limiter tersedia.
+6. Tutup dengan P3 berdasarkan kondisi akhir yang benar-benar terdeploy.

@@ -14,6 +14,7 @@ import { dirname, join } from 'path';
 import { LpAnalysisService } from '../features/lp-analysis/index.js';
 import { registerFrontendAndErrorRoutes } from './register-fallback-routes.js';
 import { APPLICATION_SCHEMA_VERSION } from './migrations.js';
+import { getApplicationReleaseIdentity } from './release.js';
 import { OperationsService, StorageMaintenanceService } from '../features/operations/index.js';
 import {
   AGGRESSIVE_INITIAL_CAPITAL_USD,
@@ -182,6 +183,7 @@ const operationsService = new OperationsService({
   rpcHeavyGate,
   openAiLock,
   applicationSchemaVersion: APPLICATION_SCHEMA_VERSION,
+  deploymentIdentity: getApplicationReleaseIdentity(),
   getAppliedMigrations: () => services.appliedMigrations,
   getActiveHttpRequests: http.getActiveHttpRequests,
   isShuttingDown: () => shuttingDown,

@@ -15,6 +15,14 @@ export interface AppliedMigrationView {
   name: string;
 }
 
+export interface DeploymentIdentity {
+  application: string;
+  revision: string;
+  builtAt: string;
+  startedAt: string;
+  entryPoint: string;
+}
+
 export interface OperationsServiceDependencies {
   snapshotStore: SnapshotStore;
   onchainStore: OnchainStore;
@@ -25,6 +33,7 @@ export interface OperationsServiceDependencies {
   rpcHeavyGate: ConcurrencyGate;
   openAiLock: AsyncLock;
   applicationSchemaVersion: number;
+  deploymentIdentity: DeploymentIdentity;
   getAppliedMigrations(): readonly AppliedMigrationView[];
   getActiveHttpRequests(): number;
   isShuttingDown(): boolean;
@@ -108,6 +117,14 @@ export class OperationsService {
     };
     return {
       ready: Object.values(checks).every(check => check.ready),
+      deployment: {
+        ...this.dependencies.deploymentIdentity,
+        schema: {
+          expectedVersion: this.dependencies.applicationSchemaVersion,
+          appliedVersion: latestMigration?.version ?? null,
+          latestMigration: latestMigration?.name ?? null,
+        },
+      },
       checks,
       schedulers,
       activeHttpRequests: this.dependencies.getActiveHttpRequests(),

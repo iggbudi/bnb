@@ -24,8 +24,13 @@ termux-wake-lock 2>/dev/null || true
 printf '\n[%s] Building application\n' "$(date -Iseconds)" >> "$BUILD_LOG"
 npm run build >> "$BUILD_LOG" 2>&1
 
-printf '\n[%s] Starting background server\n' "$(date -Iseconds)" >> "$LOG_FILE"
-nohup node dist/app/server.js >> "$LOG_FILE" 2>&1 < /dev/null &
+release_revision="$(git rev-parse HEAD)"
+build_timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '\n[%s] Starting background server (revision=%s)\n' "$build_timestamp" "$release_revision" >> "$LOG_FILE"
+nohup env \
+  BNB_RELEASE_REVISION="$release_revision" \
+  BNB_BUILD_TIMESTAMP="$build_timestamp" \
+  node dist/app/server.js >> "$LOG_FILE" 2>&1 < /dev/null &
 pid=$!
 echo "$pid" > "$PID_FILE"
 

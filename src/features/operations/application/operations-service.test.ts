@@ -36,6 +36,13 @@ function createService(schedulerRegistry: SchedulerRegistry): OperationsService 
     rpcHeavyGate: new ConcurrencyGate(1),
     openAiLock: new AsyncLock(),
     applicationSchemaVersion: 4,
+    deploymentIdentity: {
+      application: 'bnb-lp-analyzer',
+      revision: 'test-revision',
+      builtAt: '2026-07-26T00:00:00.000Z',
+      startedAt: '2026-07-26T00:00:01.000Z',
+      entryPoint: 'dist/app/server.js',
+    },
     getAppliedMigrations: () => [{ version: 4, name: 'current' }],
     getActiveHttpRequests: () => 0,
     isShuttingDown: () => false,
@@ -65,6 +72,12 @@ test('readiness derives critical scheduler failures from contributed task metada
   await assert.rejects(schedulerRegistry.run(advisory.name, advisory.run), /feature-advisory failed/);
 
   const readiness = createService(schedulerRegistry).getReadiness();
+  assert.deepEqual(readiness.deployment.schema, {
+    expectedVersion: 4,
+    appliedVersion: 4,
+    latestMigration: 'current',
+  });
+  assert.equal(readiness.deployment.revision, 'test-revision');
   assert.equal(readiness.checks.schedulers.ready, false);
   assert.equal(readiness.checks.schedulers.detail, 'failed=feature-critical');
 });
