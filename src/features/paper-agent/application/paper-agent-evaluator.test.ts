@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { PaperAgentDecision } from './agent-store.js';
+import type { PaperAgentDecision } from '../../../agent-store.js';
 import { evaluatePaperDecision, makeSkippedPaperOutcome } from './paper-agent-evaluator.js';
-import type { PoolSnapshot } from './snapshot-store.js';
+import type { PoolSnapshot } from '../../../snapshot-store.js';
 
 const observedFee = {
   amountUsd: 1,

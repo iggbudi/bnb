@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { makeBaselinePaperDecision, type PaperAgentMarketInput } from './paper-agent.js';
-import type { HistoricalPeriodStats } from './snapshot-store.js';
+import type { HistoricalPeriodStats } from '../../../snapshot-store.js';
 
 const market: PaperAgentMarketInput = {
   price: 600,

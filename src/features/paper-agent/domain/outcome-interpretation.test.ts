@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { PaperAgentOutcomeDetail } from './agent-store.js';
+import type { PaperAgentOutcomeDetail } from '../../../agent-store.js';
 import { interpretPaperOutcomeLifecycle } from './outcome-interpretation.js';
 
 function outcome(

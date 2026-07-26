@@ -8,10 +8,10 @@ import {
   AGGRESSIVE_INITIAL_CAPITAL_USD,
   processAggressivePaperLifecycle,
 } from './aggressive-paper-manager.js';
-import { AggressivePaperStore } from './aggressive-paper-store.js';
-import { buildHighRiskStrategyPlan, type HighRiskStrategyPlan } from './high-risk-strategy.js';
-import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
-import { SnapshotStore, type PoolSnapshotInput } from './snapshot-store.js';
+import { AggressivePaperStore } from '../../../aggressive-paper-store.js';
+import { buildHighRiskStrategyPlan, type HighRiskStrategyPlan } from '../domain/high-risk-strategy.js';
+import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
+import { SnapshotStore, type PoolSnapshotInput } from '../../../snapshot-store.js';
 
 const Q128 = 1n << 128n;
 

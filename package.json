@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "tsx watch src/server-bnb.ts",
     "build": "tsc",
-    "test": "tsx --test src/*.test.ts src/features/**/*.test.ts",
-    "test:coverage": "tsx --test --experimental-test-coverage --test-coverage-lines=75 --test-coverage-functions=75 --test-coverage-branches=65 src/*.test.ts src/features/**/*.test.ts",
+    "test": "tsx --test src/*.test.ts src/features/*/*.test.ts src/features/*/*/*.test.ts src/shared/*/*.test.ts",
+    "test:coverage": "tsx --test --experimental-test-coverage --test-coverage-lines=75 --test-coverage-functions=75 --test-coverage-branches=65 src/*.test.ts src/features/*/*.test.ts src/features/*/*/*.test.ts src/shared/*/*.test.ts",
     "lint": "eslint src public",
     "format": "prettier --write src public scripts docs README.md WIKI.md progress.md package.json tsconfig.json eslint.config.js .github",
     "format:check": "prettier --check src public scripts docs README.md WIKI.md progress.md package.json tsconfig.json eslint.config.js .github",

@@ -1,8 +1,8 @@
 import type { Express, RequestHandler } from 'express';
 
-import { calculateIL } from '../../../amm.js';
+import { calculateIL } from '../domain/amm.js';
 import { safeErrorMessage } from '../../../shared/http/errors.js';
-import { UpstreamError } from '../../../upstream-resilience.js';
+import { UpstreamError } from '../../../shared/runtime/upstream-resilience.js';
 import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../validation.js';
 
 export interface LpAnalysisRouteDependencies {

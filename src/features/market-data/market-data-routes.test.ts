@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import test from 'node:test';
 
-import { UpstreamError } from '../../upstream-resilience.js';
+import { UpstreamError } from '../../shared/runtime/upstream-resilience.js';
 import { registerMarketDataRoutes, type MarketDataRouteDependencies } from './index.js';
 
 test('market data slice owns market, history, and on-chain HTTP contracts', async () => {

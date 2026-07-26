@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { OnchainStore } from './onchain-store.js';
-import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
-import { SnapshotStore, type PoolSnapshotInput } from './snapshot-store.js';
+import { OnchainStore } from '../../../onchain-store.js';
+import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
+import { SnapshotStore, type PoolSnapshotInput } from '../../../snapshot-store.js';
 import {
   boundedIntegerEnvironment,
   getBackupStorageStats,

@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 
-import { FixedWindowRateLimiter } from '../operational-controls.js';
+import { FixedWindowRateLimiter } from '../shared/runtime/operational-controls.js';
 import { safeErrorMessage } from '../shared/http/errors.js';
 import type { BnbAppConfig } from './config.js';
 

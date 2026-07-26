@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import test from 'node:test';
 
-import { DEFAULT_DIRECTIONAL_CONFIG } from '../../directional-strategy.js';
+import { DEFAULT_DIRECTIONAL_CONFIG } from './index.js';
 import { registerDirectionalPaperRoutes, type DirectionalPaperRouteDependencies } from './index.js';
 
 test('directional paper slice owns performance and position HTTP contracts', async () => {

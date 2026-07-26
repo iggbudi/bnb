@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 
 import type { DirectionalPaperStore } from '../../../directional-paper-store.js';
-import type { DirectionalStrategyConfig } from '../../../directional-strategy.js';
+import type { DirectionalStrategyConfig } from '../domain/directional-strategy.js';
 import { parsePositiveNumber } from '../../../validation.js';
 
 export interface DirectionalPaperRouteDependencies {

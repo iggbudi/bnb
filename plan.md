@@ -13,9 +13,10 @@ Terakhir diperbarui: 2026-07-26 UTC.
 - [x] Fase 0 — baseline dan architecture guardrails.
 - [x] Fase 1 — composition root, konfigurasi, HTTP app factory, container, scheduler registration, dan process bootstrap telah dipindahkan ke `src/app/`.
 - [x] Fase 2 — route seluruh 8 slice selesai diekstrak ke `src/features/`.
-- [ ] Fase 3–7 — belum dimulai; berikutnya pemindahan domain/application service dimulai dari `directional-paper`.
+- [x] Fase 3 — domain logic, application service/use case, CLI directional, adapter execution, dan test terkait telah dipindahkan ke slice pemiliknya; orchestration runtime telah dibungkus service ber-Dependency Injection.
+- [ ] Fase 4–7 — belum dimulai; berikutnya pemindahan persistence dan kepemilikan schema.
 
-Catatan transisi: seluruh route bisnis sudah dimiliki feature slice; `src/app/runtime.ts` masih memuat orchestration/use case lama yang akan dipindahkan pada Fase 3. File root `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
+Catatan transisi: seluruh route bisnis, domain logic, dan application orchestration sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan runtime hooks. Store SQLite masih berada di root hingga Fase 4. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
 
 ## 2. Prinsip dan Batasan
 
@@ -48,7 +49,7 @@ Kandidat file saat ini:
 - `snapshot-store.ts` dan test
 - `onchain-store.ts` dan test
 - Market, history, statistics, dan on-chain route sudah berada di `src/features/market-data/`
-- Capture task/orchestration masih berada di `src/app/runtime.ts`
+- Capture orchestration berada di `src/features/market-data/application/market-data-service.ts`; runtime hanya mengekspos task hook sampai Fase 5
 
 Public API slice:
 
@@ -73,7 +74,7 @@ Kandidat file saat ini:
 - `lp-simulator.ts` dan test
 - `openai-analysis.ts` dan test
 - Simulation, AI analysis, dan impermanent-loss route sudah berada di `src/features/lp-analysis/`
-- Projection/cache orchestration masih berada di `src/app/runtime.ts`
+- Projection, simulation, dan AI cache orchestration berada di `src/features/lp-analysis/application/lp-analysis-service.ts`
 
 Public API slice:
 
@@ -99,7 +100,7 @@ Kandidat file saat ini:
 - `outcome-interpretation.ts` dan test
 - `agent-reflection.ts` dan test
 - Status, decisions, outcomes, performance, dan reflection route sudah berada di `src/features/paper-agent/`
-- Decision, outcome evaluation, dan reflection task masih berada di `src/app/runtime.ts`
+- Decision, outcome evaluation, dan reflection orchestration berada di `src/features/paper-agent/application/paper-agent-service.ts`; runtime hanya mengekspos task hook sampai Fase 5
 
 Public API slice:
 
@@ -124,7 +125,7 @@ Kandidat file saat ini:
 - `aggressive-paper-store.ts`
 - `aggressive-paper-dashboard.test.ts`
 - Route dan test HTTP sudah berada di `src/features/aggressive-paper/`
-- Task/orchestration masih berada di `src/app/runtime.ts`; dashboard masih di `public/dashboard.js`
+- Lifecycle orchestration berada di application service slice; runtime hanya mengekspos task hook sampai Fase 5 dan dashboard masih di `public/dashboard.js`
 
 Public API slice:
 
@@ -149,7 +150,7 @@ Kandidat file saat ini:
 - `directional-paper-dashboard.test.ts`
 - `directional-backtest-cli.ts`
 - Route dan test HTTP sudah berada di `src/features/directional-paper/`
-- Task/orchestration masih berada di `src/app/runtime.ts`; dashboard masih di `public/dashboard.js`
+- Lifecycle orchestration berada di application service slice; runtime hanya mengekspos task hook sampai Fase 5 dan dashboard masih di `public/dashboard.js`
 
 Public API slice:
 
@@ -173,7 +174,7 @@ Kandidat file saat ini:
 - `lifecycle-activation-store.ts` dan test
 - `learning-content.test.ts`
 - Model status/history route sudah berada di `src/features/learning/`
-- Training task dan lifecycle activation masih berada di `src/app/runtime.ts`
+- Training orchestration berada di `src/features/learning/application/learning-service.ts`; lifecycle activation dimiliki execution service
 
 Public API slice:
 
@@ -205,7 +206,7 @@ Kandidat file saat ini:
 - `shadow-mode-store.ts` dan test
 - `position-dashboard.test.ts`
 - Lifecycle, shadow, position, proposal, mint, exit, settlement, dan audit route sudah berada di `src/features/lp-execution/`
-- Execution readiness dan lifecycle orchestration masih berada di `src/app/runtime.ts`
+- Execution readiness dan lifecycle orchestration berada di `src/features/lp-execution/application/execution-service.ts`
 
 Public API slice:
 
@@ -228,7 +229,7 @@ Kandidat file saat ini:
 - `operational-controls.ts` dan test
 - `upstream-resilience.ts` dan test
 - Health, readiness, dan storage route sudah berada di `src/features/operations/`
-- Readiness builder dan storage task masih berada di `src/app/runtime.ts`
+- Readiness builder dan storage orchestration berada di `src/features/operations/application/operations-service.ts`
 
 Public API slice:
 
@@ -501,18 +502,18 @@ Kriteria selesai:
 
 Untuk setiap slice:
 
-- [ ] Pindahkan strategi, kalkulasi, manager, evaluator, dan use case ke folder slice.
-- [ ] Pisahkan fungsi pure domain dari orchestration yang memakai store/waktu/environment.
-- [ ] Bungkus kumpulan fungsi orchestration menjadi service/use case dengan dependency injection eksplisit.
-- [ ] Hapus akses langsung `process.env` dari domain; injeksikan config tervalidasi.
-- [ ] Pindahkan test berdampingan dengan owner fitur.
-- [ ] Ekspor hanya public contract melalui `index.ts`.
+- [x] Pindahkan strategi, kalkulasi, manager, evaluator, dan use case ke folder slice.
+- [x] Pisahkan fungsi pure domain dari orchestration yang memakai store/waktu/environment.
+- [x] Bungkus kumpulan fungsi orchestration menjadi service/use case dengan dependency injection eksplisit.
+- [x] Hapus akses langsung `process.env` dari domain; injeksikan config tervalidasi.
+- [x] Pindahkan test berdampingan dengan owner fitur.
+- [x] Ekspor hanya public contract melalui `index.ts`.
 
 Kriteria selesai:
 
-- Setiap fitur dapat dipahami dari satu direktori.
-- Domain logic tidak bergantung pada Express atau SQLite.
-- `npm run check` lulus setelah tiap slice.
+- [x] Setiap fitur dapat dipahami dari satu direktori.
+- [x] Domain logic tidak bergantung pada Express atau SQLite.
+- [x] `npm run check` lulus setelah pemindahan Fase 3.
 
 ### Fase 4 — Pindahkan Persistence dan Kepemilikan Schema
 
