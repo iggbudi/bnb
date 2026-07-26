@@ -76,6 +76,21 @@ export interface AggressivePaperEvaluationRecord {
   metrics: Record<string, unknown>;
 }
 
+export interface AggressiveProjectionEvidence {
+  status: 'INSUFFICIENT_SAMPLE' | 'OBSERVATION_READY';
+  minimumCompletedPositions: number;
+  minimumObservedCalendarDays: number;
+  completedPositions: number;
+  observedCalendarDays: number;
+  averageHoldHours: number | null;
+  averageProjectedNetReturn30dPercent: number | null;
+  averageRealizedCycleReturnPercent: number | null;
+  targetHitRatePercent: number | null;
+  noFeasibleRecenterRatePercent: number | null;
+  blockers: string[];
+  executionAuthority: false;
+}
+
 export interface AggressivePaperPerformance {
   initialCapitalUsd: number;
   portfolioValueUsd: number;
@@ -96,9 +111,12 @@ export interface AggressivePaperPerformance {
   activePosition: AggressivePaperPosition | null;
   latestEvaluation: AggressivePaperEvaluationRecord | null;
   latestAction: AggressivePaperActionRecord | null;
+  projectionEvidence: AggressiveProjectionEvidence;
 }
 
 const DEFAULT_DATABASE_PATH = resolve(process.env.SQLITE_PATH || 'data/bnb-viewer.sqlite');
+const PROJECTION_EVIDENCE_MIN_COMPLETED_POSITIONS = 30;
+const PROJECTION_EVIDENCE_MIN_CALENDAR_DAYS = 30;
 
 function startOfUtcHour(value: Date): string {
   const hour = new Date(value);
@@ -553,7 +571,7 @@ export class AggressivePaperStore {
     return latest?.status === 'CLOSED' ? latest.netLiquidationValueUsd : initialCapitalUsd;
   }
 
-  getPerformance(initialCapitalUsd: number): AggressivePaperPerformance {
+  getPerformance(initialCapitalUsd: number, now = new Date()): AggressivePaperPerformance {
     const positions = this.getRecentPositions(100).reverse();
     const activePosition = positions.find(position => position.status === 'OPEN') ?? null;
     const closed = positions.filter(position => position.status === 'CLOSED');
@@ -588,6 +606,85 @@ export class AggressivePaperStore {
       if (peak > 0) maxDrawdownPercent = Math.max(maxDrawdownPercent, ((peak - value) / peak) * 100);
     }
 
+    const projectionRows = this.database
+      .prepare(
+        `
+      SELECT
+        p.opened_at,
+        p.closed_at,
+        p.investment_usd,
+        p.net_liquidation_value_usd,
+        p.close_reason,
+        e.metrics_json
+      FROM aggressive_paper_positions p
+      LEFT JOIN aggressive_paper_evaluations e ON e.id = (
+        SELECT first_e.id
+        FROM aggressive_paper_evaluations first_e
+        WHERE first_e.position_id = p.id
+        ORDER BY first_e.age_hours ASC, first_e.id ASC
+        LIMIT 1
+      )
+      WHERE p.status = 'CLOSED'
+      ORDER BY p.opened_at ASC, p.id ASC
+    `
+      )
+      .all() as Array<Record<string, string | number | null>>;
+    const projectedReturns = projectionRows
+      .map(row => {
+        if (row.metrics_json === null) return null;
+        const metrics = JSON.parse(String(row.metrics_json)) as Record<string, unknown>;
+        const value = Number(metrics.projectedNetReturn30dPercent);
+        return Number.isFinite(value) ? value : null;
+      })
+      .filter((value): value is number => value !== null);
+    const holdHours = projectionRows
+      .map(row => {
+        if (row.closed_at === null) return null;
+        const value = (Date.parse(String(row.closed_at)) - Date.parse(String(row.opened_at))) / 3_600_000;
+        return Number.isFinite(value) && value >= 0 ? value : null;
+      })
+      .filter((value): value is number => value !== null);
+    const realizedCycleReturns = projectionRows.map(
+      row => (Number(row.net_liquidation_value_usd) / Number(row.investment_usd) - 1) * 100
+    );
+    const firstOpenedAt = positions[0]?.openedAt;
+    const observedCalendarDays = firstOpenedAt
+      ? Math.max(0, (now.getTime() - Date.parse(firstOpenedAt)) / 86_400_000)
+      : 0;
+    const evidenceBlockers: string[] = [];
+    if (closed.length < PROJECTION_EVIDENCE_MIN_COMPLETED_POSITIONS) {
+      evidenceBlockers.push('INSUFFICIENT_COMPLETED_POSITIONS');
+    }
+    if (observedCalendarDays < PROJECTION_EVIDENCE_MIN_CALENDAR_DAYS) {
+      evidenceBlockers.push('INSUFFICIENT_CALENDAR_DURATION');
+    }
+    const average = (values: number[]): number | null =>
+      values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    const projectionEvidence: AggressiveProjectionEvidence = {
+      status: evidenceBlockers.length === 0 ? 'OBSERVATION_READY' : 'INSUFFICIENT_SAMPLE',
+      minimumCompletedPositions: PROJECTION_EVIDENCE_MIN_COMPLETED_POSITIONS,
+      minimumObservedCalendarDays: PROJECTION_EVIDENCE_MIN_CALENDAR_DAYS,
+      completedPositions: closed.length,
+      observedCalendarDays,
+      averageHoldHours: average(holdHours),
+      averageProjectedNetReturn30dPercent: average(projectedReturns),
+      averageRealizedCycleReturnPercent: average(realizedCycleReturns),
+      targetHitRatePercent:
+        closed.length > 0
+          ? (closed.filter(position => position.closeReason === 'TAKE_PROFIT_10_PERCENT').length /
+              closed.length) *
+            100
+          : null,
+      noFeasibleRecenterRatePercent:
+        closed.length > 0
+          ? (closed.filter(position => position.closeReason === 'NO_FEASIBLE_RECENTER').length /
+              closed.length) *
+            100
+          : null,
+      blockers: evidenceBlockers,
+      executionAuthority: false,
+    };
+
     return {
       initialCapitalUsd,
       portfolioValueUsd,
@@ -613,6 +710,7 @@ export class AggressivePaperStore {
         ? this.getLatestEvaluation(activePosition.id)
         : this.getLatestEvaluation(),
       latestAction: this.getLatestAction(),
+      projectionEvidence,
     };
   }
 

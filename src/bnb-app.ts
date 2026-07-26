@@ -33,6 +33,8 @@ import {
   processAggressivePaperLifecycle,
 } from './aggressive-paper-manager.js';
 import { REFLECTION_PROMPT_VERSION, reflectOnPaperOutcome } from './agent-reflection.js';
+import { runDirectionalForwardCycle } from './directional-paper-manager.js';
+import { DEFAULT_DIRECTIONAL_CONFIG, DIRECTIONAL_STRATEGY_VERSION } from './directional-strategy.js';
 import { getPoolByAddress } from './dexscreener.js';
 import { evaluateExecutionReadiness } from './execution-control.js';
 import {
@@ -67,6 +69,7 @@ import {
 import {
   buildHighRiskStrategyPlan,
   HIGH_RISK_FEE_RETENTION_FACTOR,
+  HIGH_RISK_HISTORY_WINDOW_HOURS,
   HIGH_RISK_MAX_RECENTERS_PER_MONTH,
   HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT,
   HIGH_RISK_RECENTER_SLIPPAGE_BPS,
@@ -141,6 +144,7 @@ const {
   onchainStore,
   positionStore,
   aggressivePaperStore,
+  directionalPaperStore,
   shadowModeStore,
   lifecycleActivationStore,
 } = services;
@@ -172,6 +176,7 @@ const EXECUTION_CONFIG = {
 
 const POSITION_LIFECYCLE_ENABLED = process.env.POSITION_LIFECYCLE_ENABLED === 'true';
 const AGGRESSIVE_PAPER_ENABLED = process.env.AGGRESSIVE_PAPER_ENABLED !== 'false';
+const DIRECTIONAL_PAPER_ENABLED = process.env.DIRECTIONAL_PAPER_ENABLED !== 'false';
 const MINT_RECEIPT_MIN_CONFIRMATIONS = Math.min(
   100,
   Math.max(1, Math.floor(positiveEnvNumber('MINT_RECEIPT_MIN_CONFIRMATIONS', 3)))
@@ -608,12 +613,18 @@ function buildCurrentHighRiskPlan(
   investment = aggressivePaperStore.getAvailableCapital(AGGRESSIVE_INITIAL_CAPITAL_USD)
 ) {
   const gas = estimateLifecycleGas(onchain);
-  const stats24h = snapshotStore.getStatistics().find(period => period.label === '24h');
-  const history24hPrices = snapshotStore.getHistory(24, 1_440).map(snapshot => snapshot.price);
+  const stats7d = snapshotStore.getStatistics().find(period => period.label === '7d');
+  const history7d = snapshotStore.getHistory(HIGH_RISK_HISTORY_WINDOW_HOURS, 10_080);
+  const averageVolume24h = stats7d?.volume24h.average;
+  const conservativeVolume24h =
+    averageVolume24h !== null && averageVolume24h !== undefined
+      ? Math.min(analysis.volume24h, averageVolume24h)
+      : analysis.volume24h;
   return buildHighRiskStrategyPlan({
     investment,
     currentPrice: onchain.priceWbnbUsd,
     volume24h: analysis.volume24h,
+    conservativeVolume24h,
     poolFeeRate: onchain.fee / 1_000_000,
     activeLiquidity: onchain.activeLiquidity,
     sqrtPriceX96: onchain.sqrtPriceX96,
@@ -625,8 +636,9 @@ function buildCurrentHighRiskPlan(
     protocolFeeShareToken1Bps: onchain.protocolFeeShareToken1Bps,
     entryGasUsd: gas.entryGasUsd,
     exitGasUsd: gas.estimatedExitGasUsd,
-    history24hCoveragePercent: stats24h?.coveragePercent ?? 0,
-    history24hPrices,
+    historyWindowHours: HIGH_RISK_HISTORY_WINDOW_HOURS,
+    historyCoveragePercent: stats7d?.coveragePercent ?? 0,
+    historyPrices: history7d.map(snapshot => snapshot.price),
   });
 }
 
@@ -683,6 +695,61 @@ function runAggressivePaperLifecycle(
     console.error('Aggressive paper lifecycle error:', error);
     return null;
   }
+}
+
+function getDirectionalPaperStatus() {
+  const forwardRun = directionalPaperStore.getLatestRun('FORWARD');
+  const backtestRun = directionalPaperStore.getLatestRun('BACKTEST');
+  const forwardPerformance = forwardRun ? directionalPaperStore.getPerformance(forwardRun.id) : null;
+  const backtestPerformance = backtestRun ? directionalPaperStore.getPerformance(backtestRun.id) : null;
+  const selectedRun = forwardRun ?? backtestRun;
+  return {
+    enabled: DIRECTIONAL_PAPER_ENABLED,
+    mode: 'SIMULATION_ONLY',
+    strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
+    marketSource: 'POOL_SNAPSHOT_CLOSE_PER_MINUTE',
+    limitations: {
+      nativePerpetualData: false,
+      intraminuteHighLowAvailable: false,
+      markIndexSpreadAvailable: false,
+      orderBookAvailable: false,
+      fundingRateSource: 'FIXED_SIMULATION_ASSUMPTION',
+    },
+    policy: {
+      initialCapitalUsd: DEFAULT_DIRECTIONAL_CONFIG.initialCapitalUsd,
+      leverage: DEFAULT_DIRECTIONAL_CONFIG.leverage,
+      marginFraction: DEFAULT_DIRECTIONAL_CONFIG.marginFraction,
+      takerFeeBps: DEFAULT_DIRECTIONAL_CONFIG.takerFeeBps,
+      slippageBps: DEFAULT_DIRECTIONAL_CONFIG.slippageBps,
+      maintenanceMarginRate: DEFAULT_DIRECTIONAL_CONFIG.maintenanceMarginRate,
+      minimumHistoryPoints: DEFAULT_DIRECTIONAL_CONFIG.minimumHistoryPoints,
+      maximumHoldMinutes: DEFAULT_DIRECTIONAL_CONFIG.maximumHoldMinutes,
+      cooldownMinutes: DEFAULT_DIRECTIONAL_CONFIG.cooldownMinutes,
+      fundingRate8h: DEFAULT_DIRECTIONAL_CONFIG.fundingRate8h,
+      onePositionPerRun: true,
+      liveExecutionEnabled: false,
+    },
+    forwardPerformance,
+    latestBacktestPerformance: backtestPerformance,
+    recentRuns: directionalPaperStore.getRecentRuns(20),
+    recentPositions: selectedRun ? directionalPaperStore.getRecentPositions(selectedRun.id, 20) : [],
+    recentDecisions: selectedRun ? directionalPaperStore.getRecentDecisions(selectedRun.id, 100) : [],
+  };
+}
+
+function runDirectionalPaperCycle(now = new Date()) {
+  if (!DIRECTIONAL_PAPER_ENABLED) return null;
+  const performance = runDirectionalForwardCycle({
+    store: directionalPaperStore,
+    snapshotStore,
+    config: DEFAULT_DIRECTIONAL_CONFIG,
+    now,
+  });
+  const latest = performance?.latestDecision;
+  if (latest && latest.action !== 'WAIT' && latest.action !== 'HOLD') {
+    console.log(`📈 Directional paper: ${latest.action} (${latest.reasonCode})`);
+  }
+  return performance;
 }
 
 function runShadowPositionLifecycle(
@@ -1269,6 +1336,7 @@ function getReadiness(now = Date.now()) {
     snapshotStore.count();
     onchainStore.count();
     agentStore.count();
+    directionalPaperStore.getRecentRuns(1);
     checks.sqlite = { ready: true, detail: 'read/write stores are queryable' };
   } catch {
     checks.sqlite = { ready: false, detail: 'SQLite query failed' };
@@ -1309,6 +1377,7 @@ function getReadiness(now = Date.now()) {
         'market-snapshot',
         'onchain-snapshot',
         'paper-lifecycle',
+        'directional-paper',
         'paper-outcome',
         'storage-maintenance',
       ].includes(status.name) &&
@@ -1746,6 +1815,44 @@ app.get('/api/agent/aggressive-performance', (req, res) => {
   });
 });
 
+app.get('/api/agent/directional-performance', (_req, res) => {
+  res.json({
+    success: true,
+    data: getDirectionalPaperStatus(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/agent/directional-positions/:id', (req, res) => {
+  try {
+    const id = Math.floor(parsePositiveNumber(req.params.id, 'id'));
+    const position = directionalPaperStore.getPosition(id);
+    if (!position) {
+      res.status(404).json({
+        success: false,
+        error: 'Directional paper position not found',
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+    res.json({
+      success: true,
+      data: {
+        position,
+        fills: directionalPaperStore.getFills(id),
+        evaluations: directionalPaperStore.getRecentEvaluations(id, 10_000),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Invalid directional position parameter',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 app.get('/api/agent/aggressive-positions/:id', (req, res) => {
   try {
     const id = Math.floor(parsePositiveNumber(req.params.id, 'id'));
@@ -1803,9 +1910,21 @@ app.get('/api/agent/status', (req, res) => {
         recenterSlippageBps: HIGH_RISK_RECENTER_SLIPPAGE_BPS,
         stopLossPercent: HIGH_RISK_STOP_LOSS_PERCENT,
         minimumHistoryCoveragePercent: HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT,
+        historyWindowHours: HIGH_RISK_HISTORY_WINDOW_HOURS,
+        conservativeVolumeSource: 'MIN_CURRENT_AND_7D_AVERAGE',
         executionEnabled: false,
         mode: AGGRESSIVE_PAPER_ENABLED ? 'PAPER_PORTFOLIO_ACTIVE' : 'PAPER_DISABLED',
         performanceEndpoint: '/api/agent/aggressive-performance',
+      },
+      directionalPaperPolicy: {
+        strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
+        enabled: DIRECTIONAL_PAPER_ENABLED,
+        decisionIntervalMinutes: 1,
+        initialCapitalUsd: DEFAULT_DIRECTIONAL_CONFIG.initialCapitalUsd,
+        leverage: DEFAULT_DIRECTIONAL_CONFIG.leverage,
+        marginFraction: DEFAULT_DIRECTIONAL_CONFIG.marginFraction,
+        liveExecutionEnabled: false,
+        performanceEndpoint: '/api/agent/directional-performance',
       },
       totalDecisions: agentStore.count(),
       latestDecision: agentStore.getRecent(1)[0] ?? null,
@@ -1873,7 +1992,7 @@ app.get('/api/agent/outcomes', (req, res) => {
     res.json({
       success: true,
       data: {
-        ...agentStore.outcomeCounts(),
+        ...agentStore.outcomeCounts(horizon ?? undefined),
         horizon,
         outcomes:
           horizon === null
@@ -2699,6 +2818,7 @@ export const bnbRuntime = {
     captureOnchainPoolState,
     refreshExecutionAdapterVerification,
     runHourlyPaperAgent,
+    runDirectionalPaperCycle,
     evaluateDuePaperDecisions,
     runLearningCycle,
     runReflectionCycle,

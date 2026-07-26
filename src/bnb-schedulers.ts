@@ -34,6 +34,7 @@ export function startBnbSchedulers(runtime: BnbRuntime): BnbSchedulerController 
     tasks.refreshExecutionAdapterVerification
   );
   schedule('paper-lifecycle', 'Paper agent', 60_000, tasks.runHourlyPaperAgent);
+  schedule('directional-paper', 'Directional paper agent', 60_000, tasks.runDirectionalPaperCycle);
   schedule('paper-outcome', 'Paper outcome evaluator', 60_000, tasks.evaluateDuePaperDecisions);
   schedule('learning', 'Learning cycle', 60 * 60_000, tasks.runLearningCycle);
   schedule('reflection', 'Agent reflection cycle', 60 * 60_000, tasks.runReflectionCycle);
@@ -47,6 +48,7 @@ export function startBnbSchedulers(runtime: BnbRuntime): BnbSchedulerController 
     tasks.refreshExecutionAdapterVerification
   );
   run('paper-lifecycle', 'Initial paper agent', tasks.runHourlyPaperAgent);
+  run('directional-paper', 'Initial directional paper agent', tasks.runDirectionalPaperCycle);
   run('paper-outcome', 'Initial paper outcome evaluator', tasks.evaluateDuePaperDecisions);
   run('learning', 'Initial learning cycle', tasks.runLearningCycle);
   run('reflection', 'Initial agent reflection', tasks.runReflectionCycle);

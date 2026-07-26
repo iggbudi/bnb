@@ -31,6 +31,7 @@
         <button class="tab" data-tab="simulator">💰 LP Simulator</button>
         <button class="tab" data-tab="il">💧 IL Calculator</button>
         <button class="tab" data-tab="agent">🧠 AI Agent</button>
+        <button class="tab" data-tab="directional">📈 Perp Paper</button>
         <button class="tab" data-tab="position">🧭 Position</button>
         <button class="tab" data-tab="learn">📖 Belajar</button>
       </div>
@@ -81,14 +82,21 @@
         </div>
       </div>
 
-      <!-- Tab 5: Position Lifecycle -->
+      <!-- Tab 5: Directional / Perpetual Paper -->
+      <div class="tab-content" id="tab-directional">
+        <div id="directionalDashboard">
+          <div class="loading">Memuat simulasi long/short...</div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Position Lifecycle -->
       <div class="tab-content" id="tab-position">
         <div id="positionDashboard">
           <div class="loading">Memuat position lifecycle...</div>
         </div>
       </div>
 
-      <!-- Tab 6: Learn -->
+      <!-- Tab 7: Learn -->
       <div class="tab-content" id="tab-learn">
         <div class="card">
           <h3>🚀 Mulai di Sini: Dari Mana Profit LP?</h3>
@@ -118,7 +126,7 @@
         </div>
 
         <div class="card">
-          <h3>💧 Dua Jalur Paper yang Dipakai Aplikasi</h3>
+          <h3>💧 Tiga Jalur Paper yang Dipakai Aplikasi</h3>
           <div class="metrics-grid">
             <div class="metric">
               <div class="metric-label">Pool</div>
@@ -133,13 +141,20 @@
               <div>Concentrated range sempit dengan target siklus +10% dan hard stop −5%.</div>
             </div>
             <div class="metric">
+              <div class="metric-label">Directional · Modal Awal US$50</div>
+              <div>
+                Simulasi long/short leverage 5× dengan TP, SL, trailing stop, dan liquidation sintetis.
+              </div>
+            </div>
+            <div class="metric">
               <div class="metric-label">Pemisahan Hasil</div>
-              <div>Statistik sinyal full-range tidak dicampur dengan P&amp;L portfolio agresif.</div>
+              <div>Statistik full-range, concentrated LP, dan directional long/short tidak dicampur.</div>
             </div>
           </div>
           <div class="error" style="margin-top: 15px">
             Strategi agresif dapat lebih cepat menghasilkan fee, tetapi juga lebih cepat keluar range, berubah
-            menjadi satu token, membayar recenter, atau menyentuh stop-loss.
+            menjadi satu token, membayar recenter, atau menyentuh stop-loss. Directional leverage dapat
+            terkena TP/SL atau liquidation lebih cepat dan saat ini hanya memakai sampled close per menit.
           </div>
         </div>
 

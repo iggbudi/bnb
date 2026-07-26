@@ -64,6 +64,7 @@ function planFor(state: PancakeV3OnchainState): HighRiskStrategyPlan {
     investment: AGGRESSIVE_INITIAL_CAPITAL_USD,
     currentPrice: state.priceWbnbUsd,
     volume24h: 200_000_000,
+    conservativeVolume24h: 200_000_000,
     poolFeeRate: 0.0001,
     activeLiquidity: state.activeLiquidity,
     sqrtPriceX96: state.sqrtPriceX96,
@@ -75,8 +76,9 @@ function planFor(state: PancakeV3OnchainState): HighRiskStrategyPlan {
     protocolFeeShareToken1Bps: state.protocolFeeShareToken1Bps,
     entryGasUsd: 0.017,
     exitGasUsd: 0.023,
-    history24hCoveragePercent: 100,
-    history24hPrices: Array.from({ length: 1_440 }, () => state.priceWbnbUsd),
+    historyWindowHours: 168,
+    historyCoveragePercent: 100,
+    historyPrices: Array.from({ length: 168 }, () => state.priceWbnbUsd),
   });
 }
 
@@ -181,6 +183,12 @@ test('credits observed on-chain fee once and takes profit at ten percent', () =>
     assert.equal(performance.completedPositions, 1);
     assert.equal(performance.targetHits, 1);
     assert.ok(performance.portfolioValueUsd > 55);
+    assert.equal(performance.projectionEvidence.status, 'INSUFFICIENT_SAMPLE');
+    assert.equal(performance.projectionEvidence.completedPositions, 1);
+    assert.equal(performance.projectionEvidence.targetHitRatePercent, 100);
+    assert.ok((performance.projectionEvidence.averageProjectedNetReturn30dPercent ?? 0) >= 10);
+    assert.ok((performance.projectionEvidence.averageRealizedCycleReturnPercent ?? 0) >= 10);
+    assert.equal(performance.projectionEvidence.executionAuthority, false);
 
     const reentryState = {
       ...exitState,

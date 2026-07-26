@@ -19,7 +19,8 @@
     "background:start": "bash scripts/start-background.sh",
     "background:stop": "bash scripts/stop-background.sh",
     "background:status": "bash scripts/status-background.sh",
-    "background:logs": "tail -f logs/server.log"
+    "background:logs": "tail -f logs/server.log",
+    "backtest:directional": "tsx src/directional-backtest-cli.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -1083,7 +1083,11 @@ export class AgentStore {
     return rows.map(row => this.mapModelRow(row));
   }
 
-  outcomeCounts(): { total: number; evaluated: number; skipped: number } {
+  outcomeCounts(horizonHours?: 1 | 6 | 24 | 168): {
+    total: number;
+    evaluated: number;
+    skipped: number;
+  } {
     const row = this.database
       .prepare(
         `
@@ -1092,9 +1096,14 @@ export class AgentStore {
         SUM(CASE WHEN status = 'EVALUATED' THEN 1 ELSE 0 END) AS evaluated,
         SUM(CASE WHEN status = 'SKIPPED_DATA_GAP' THEN 1 ELSE 0 END) AS skipped
       FROM paper_agent_outcomes
+      WHERE ? IS NULL OR horizon_hours = ?
     `
       )
-      .get() as { total: number; evaluated: number | null; skipped: number | null };
+      .get(horizonHours ?? null, horizonHours ?? null) as {
+      total: number;
+      evaluated: number | null;
+      skipped: number | null;
+    };
     return {
       total: Number(row.total),
       evaluated: Number(row.evaluated ?? 0),

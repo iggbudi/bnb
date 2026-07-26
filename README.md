@@ -77,10 +77,13 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 
 - Membuat maksimal satu keputusan immutable setiap jam
 - Modal simulasi tetap US$100 dengan aksi operasional `WAIT` atau `ENTER_FULL_RANGE`
-- High Risk / High Gain planner menghitung concentrated range terlebar yang masih menargetkan 10% net per 30 hari setelah haircut fee, protocol fee, gas, maksimal empat recenter, dan slippage
+- High Risk / High Gain planner menghitung concentrated range terlebar yang masih menargetkan 10% net per 30 hari setelah haircut fee, protocol fee, gas, maksimal empat recenter, dan slippage; occupancy memakai histori 7 hari dan volume dipotong ke nilai terendah antara kondisi 24 jam saat ini dan rata-rata rolling 7 hari
 - Portfolio paper agresif terpisah memakai modal awal US$50, satu posisi aktual tanpa sinyal overlap, target +10%, hard stop −5%, konfirmasi out-of-range 60 menit, maksimal empat recenter, dan exit setelah dua siklus recenter merugi
+- Agent directional/perpetual paper terpisah mereplay dan memproses harga WBNB/USDT per menit dengan aksi `OPEN_LONG`, `OPEN_SHORT`, `HOLD`, dan `CLOSE`; modal awal US$50, leverage 5×, margin 50%, TP/SL dinamis, trailing stop, liquidation sintetis, cooldown, maximum hold, taker fee, serta slippage
+- Ledger directional menyimpan run backtest/forward, keputusan, posisi, fill, dan mark-to-market secara auditable; tab khusus **Perp Paper** menampilkan portfolio, posisi aktif, TP/SL/liquidation, backtest, histori posisi, dan keputusan; simulasi tidak memakai API key, tidak mempunyai high/low intramenit, dan belum memakai mark/index price, order book, atau funding perp native
 - Estimasi fee paper teramati memakai delta `feeGrowthGlobal` on-chain dikalikan occupancy in-range; nilai token mengikuti kurva concentrated V3 dan seluruh gas/slippage masuk net liquidation value
 - Modal net dikompaun antar-siklus setelah cooldown 6 jam; exit risiko memakai cooldown 24 jam; live concentrated execution tetap dinonaktifkan
+- Dashboard membandingkan rata-rata proyeksi 30 hari dengan return siklus aktual, durasi observasi, target-hit, dan kegagalan recenter; evidence tetap `INSUFFICIENT_SAMPLE` sebelum minimal 30 posisi selesai dan 30 hari kalender
 - Menyimpan fitur pasar, prediksi fee/IL, confidence, alasan, dan versi strategi ke SQLite
 - Lifecycle baseline v2.1 hanya dapat entry setelah coverage histori 7 hari mencapai 80% dan proyeksi fee dari share active liquidity V3 menutup IL stress, gas entry/exit, serta minimum edge US$0,01
 - Mengevaluasi sinyal secara otomatis setelah 1h, 6h, 24h, dan 7d
@@ -180,8 +183,10 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 | `/api/agent/high-risk-plan`                               | Proyeksi range concentrated agresif saat ini                                         |
 | `/api/agent/aggressive-performance`                       | P&L portfolio paper agresif, posisi, evaluasi, fee, biaya, drawdown, dan aksi        |
 | `/api/agent/aggressive-positions/:id`                     | Detail lifecycle satu posisi paper agresif                                           |
+| `/api/agent/directional-performance`                      | Run forward/backtest, equity, drawdown, posisi long/short, dan keputusan per menit   |
+| `/api/agent/directional-positions/:id`                    | Detail posisi directional, fill entry/exit, dan evaluasi mark-to-market              |
 | `/api/agent/decisions?limit=24`                           | Histori keputusan paper agent terbaru                                                |
-| `/api/agent/outcomes?horizon=168&limit=100`               | Raw outcome immutable + legacy assessment + lifecycle interpretation beserta sinyal  |
+| `/api/agent/outcomes?horizon=168&limit=100`               | Raw outcome immutable + interpretasi; count difilter sesuai horizon yang diminta     |
 | `/api/agent/performance?horizon=168`                      | Verdict 7d, diagnostics, abstention, lifecycle cost, reward, dan regret              |
 | `/api/agent/models`                                       | Progress training, gate aktivasi, model aktif, dan histori versi model               |
 | `/api/agent/reflections?limit=20`                         | Status worker dan memori refleksi verdict entry 168h                                 |
@@ -210,6 +215,7 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 - **Persistence:** Server menyimpan snapshot saat startup dan setiap menit, maksimal satu record per menit
 - **Paper agent:** Scheduler diperiksa setiap menit dan menyimpan maksimal satu sinyal full-range per jam (`lifecycle-v2.1`)
 - **Aggressive paper:** Ledger SQLite terpisah (`concentrated-aggressive-v1.0`) mengelola satu portfolio US$50 dan mengevaluasinya per jam dari state on-chain
+- **Directional paper:** Ledger `directional-momentum-v1.0` menjalankan backtest dan forward simulation per menit dengan long/short leverage 5×; jalankan replay manual memakai `npm run backtest:directional -- --hours=1440`
 - **Position lifecycle:** Tahap G full-range control plane terpasang, tetapi runtime tetap SHADOW sampai Stage F qualified dan aktivasi paper-only disetujui eksplisit
 - **Outcome evaluator:** Memeriksa keputusan jatuh tempo setiap menit; fee counterfactual full-range dihitung dari delta `feeGrowthGlobal` V3 dan liquidity posisi antara checkpoint entry/target
 - **Learning engine:** Logistic regression tanpa framework eksternal, standardisasi train-only, purged expanding walk-forward validation, L2 regularization, dan model versioning SQLite

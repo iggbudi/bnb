@@ -1,6 +1,8 @@
 const PROTOCOL_FEE_DENOMINATOR_BPS = 10_000;
 const DAYS_PER_MONTH = 30;
 
+export const HIGH_RISK_PROJECTION_VERSION = 'conservative-7d-v2';
+export const HIGH_RISK_HISTORY_WINDOW_HOURS = 7 * 24;
 export const HIGH_RISK_TARGET_MONTHLY_RETURN_PERCENT = 10;
 export const HIGH_RISK_FEE_RETENTION_FACTOR = 0.7;
 export const HIGH_RISK_MAX_RECENTERS_PER_MONTH = 4;
@@ -15,6 +17,7 @@ export interface HighRiskStrategyInput {
   investment: number;
   currentPrice: number;
   volume24h: number;
+  conservativeVolume24h?: number;
   poolFeeRate: number;
   activeLiquidity: string;
   sqrtPriceX96: string;
@@ -26,8 +29,9 @@ export interface HighRiskStrategyInput {
   protocolFeeShareToken1Bps: number;
   entryGasUsd: number;
   exitGasUsd: number;
-  history24hCoveragePercent: number;
-  history24hPrices: number[];
+  historyWindowHours?: number;
+  historyCoveragePercent: number;
+  historyPrices: number[];
   targetMonthlyReturnPercent?: number;
   feeRetentionFactor?: number;
   maxRecentersPerMonth?: number;
@@ -61,6 +65,7 @@ export interface HighRiskRangeCandidate {
 
 export interface HighRiskStrategyPlan {
   strategy: 'CONCENTRATED_HIGH_RISK_MONTHLY_TARGET';
+  projectionVersion: typeof HIGH_RISK_PROJECTION_VERSION;
   riskLevel: 'VERY_HIGH';
   advisoryAction: 'PAPER_TEST_CONCENTRATED' | 'WAIT';
   status: 'CANDIDATE_FOUND' | 'TARGET_NOT_FEASIBLE' | 'DATA_INSUFFICIENT';
@@ -73,7 +78,11 @@ export interface HighRiskStrategyPlan {
   feeRetentionFactor: number;
   maxRecentersPerMonth: number;
   recenterSlippageBps: number;
-  history24hCoveragePercent: number;
+  historyWindowHours: number;
+  historyCoveragePercent: number;
+  observedVolume24h: number;
+  conservativeVolume24h: number;
+  volumeHaircutFactor: number;
   selectedRange: HighRiskRangeCandidate | null;
   candidates: HighRiskRangeCandidate[];
   reason: string;
@@ -141,6 +150,9 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
   finitePositive(input.investment, 'Investment');
   finitePositive(input.currentPrice, 'Current price');
   finitePositive(input.volume24h, '24h volume', true);
+  if (input.conservativeVolume24h !== undefined) {
+    finitePositive(input.conservativeVolume24h, 'Conservative 24h volume', true);
+  }
   finitePositive(input.poolFeeRate, 'Pool fee rate');
   finitePositive(input.entryGasUsd, 'Entry gas', true);
   finitePositive(input.exitGasUsd, 'Exit gas', true);
@@ -150,6 +162,13 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
   if (input.token0Decimals !== input.token1Decimals) {
     throw new Error('High-risk planner currently requires equal token decimals');
   }
+
+  const historyWindowHours = input.historyWindowHours ?? HIGH_RISK_HISTORY_WINDOW_HOURS;
+  if (!Number.isInteger(historyWindowHours) || historyWindowHours < 24) {
+    throw new Error('History window must be an integer of at least 24 hours');
+  }
+  const conservativeVolume24h = Math.min(input.volume24h, input.conservativeVolume24h ?? input.volume24h);
+  const volumeHaircutFactor = input.volume24h > 0 ? conservativeVolume24h / input.volume24h : 0;
 
   const activeLiquidity = BigInt(input.activeLiquidity);
   const sqrtPriceX96 = BigInt(input.sqrtPriceX96);
@@ -178,7 +197,7 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
   const activeLiquidityNumber = Number(activeLiquidity);
   const protocolFeeShareBps = (input.protocolFeeShareToken0Bps + input.protocolFeeShareToken1Bps) / 2;
   const netLpPoolFees24h =
-    input.volume24h * input.poolFeeRate * (1 - protocolFeeShareBps / PROTOCOL_FEE_DENOMINATOR_BPS);
+    conservativeVolume24h * input.poolFeeRate * (1 - protocolFeeShareBps / PROTOCOL_FEE_DENOMINATOR_BPS);
   const baseLifecycleCostUsd = input.entryGasUsd + input.exitGasUsd;
   const recenterCostUsd =
     baseLifecycleCostUsd + (input.investment * recenterSlippageBps) / PROTOCOL_FEE_DENOMINATOR_BPS;
@@ -186,8 +205,7 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
   const logTick = Math.log(1.0001);
   const unitScale = 10 ** input.token0Decimals;
   const hasSufficientHistory =
-    input.history24hCoveragePercent >= HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT &&
-    input.history24hPrices.length > 0;
+    input.historyCoveragePercent >= HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT && input.historyPrices.length > 0;
 
   const candidates = rangeCandidates.map((rangePercent): HighRiskRangeCandidate => {
     finitePositive(rangePercent, 'Range percent');
@@ -212,7 +230,7 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
     const boundaryPrices = [1 / sqrtLower ** 2, 1 / sqrtUpper ** 2];
     const priceLowerUsd = Math.min(...boundaryPrices);
     const priceUpperUsd = Math.max(...boundaryPrices);
-    const historical = rangeOccupancy(input.history24hPrices, priceLowerUsd, priceUpperUsd);
+    const historical = rangeOccupancy(input.historyPrices, priceLowerUsd, priceUpperUsd);
     const occupancyFactor = historical.occupancyPercent / 100;
     const appliedFeeRetentionFactor = hasSufficientHistory
       ? Math.min(feeRetentionFactor, occupancyFactor)
@@ -268,7 +286,7 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
   let reason: string;
   if (!hasSufficientHistory) {
     status = 'DATA_INSUFFICIENT';
-    reason = `Coverage histori 24 jam ${input.history24hCoveragePercent.toFixed(1)}% belum mencapai ${HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT}%.`;
+    reason = `Coverage histori ${historyWindowHours} jam ${input.historyCoveragePercent.toFixed(1)}% belum mencapai ${HIGH_RISK_MIN_HISTORY_COVERAGE_PERCENT}%.`;
   } else if (!selectedRange) {
     status = 'TARGET_NOT_FEASIBLE';
     reason = `Tidak ada kandidat range yang mencapai target net ${targetMonthlyReturnPercent.toFixed(1)}% per 30 hari setelah haircut fee dan budget recenter.`;
@@ -279,6 +297,7 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
 
   return {
     strategy: 'CONCENTRATED_HIGH_RISK_MONTHLY_TARGET',
+    projectionVersion: HIGH_RISK_PROJECTION_VERSION,
     riskLevel: 'VERY_HIGH',
     advisoryAction: selectedRange ? 'PAPER_TEST_CONCENTRATED' : 'WAIT',
     status,
@@ -291,14 +310,19 @@ export function buildHighRiskStrategyPlan(input: HighRiskStrategyInput): HighRis
     feeRetentionFactor,
     maxRecentersPerMonth,
     recenterSlippageBps,
-    history24hCoveragePercent: input.history24hCoveragePercent,
+    historyWindowHours,
+    historyCoveragePercent: input.historyCoveragePercent,
+    observedVolume24h: input.volume24h,
+    conservativeVolume24h,
+    volumeHaircutFactor,
     selectedRange,
     candidates,
     reason,
     warnings: [
       'Target adalah proyeksi, bukan jaminan hasil.',
       'Range sempit dapat sering out-of-range dan berubah menjadi satu token.',
-      'Proyeksi memakai volume 24 jam dan active liquidity saat ini; keduanya dapat berubah.',
+      `Proyeksi memakai occupancy ${historyWindowHours} jam dan volume konservatif yang tidak melebihi volume 24 jam saat ini.`,
+      'Kelayakan proyeksi harus dinilai terpisah dari hasil portfolio aktual dan bukti siklus selesai.',
       'Lifecycle portfolio paper concentrated aktif; live execution adapter tetap dinonaktifkan.',
     ],
   };

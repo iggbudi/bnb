@@ -24,6 +24,7 @@ Fee tier diverifikasi langsung melalui fungsi `fee()` pada contract pool. Pool d
 - Simulator full-range 50/50 dan kalkulator impermanent loss.
 - Analisis opsional GPT-5.6 Sol dengan reasoning medium dan konteks histori.
 - Portfolio paper concentrated agresif bermodal awal US$50 dengan target +10%, stop −5%, fee on-chain, recenter terkendali, dan P&L aktual non-overlap.
+- Agent directional paper long/short bermodal awal US$50 dan leverage 5×, dengan keputusan per menit, TP/SL, trailing stop, liquidation sintetis, fee, slippage, backtest, dan forward simulation tanpa API key trading; seluruh statusnya berada pada tab khusus **Perp Paper**.
 - Materi Belajar tentang HOLD vs LP, full-range vs agresif, out-of-range, recenter, risiko, dan cara membaca performa.
 
 ## Tech Stack
@@ -49,6 +50,7 @@ bnb/
 │   ├── dexscreener.ts         # Integrasi DexScreener
 │   ├── amm.ts                 # IL dan analisis AMM
 │   ├── snapshot-store.ts      # SQLite, statistik, chart, backup
+│   ├── directional-*.ts       # Strategi, ledger, lifecycle, dan CLI backtest long/short
 │   ├── openai-analysis.ts     # GPT structured analysis
 │   └── *.test.ts
 ├── public/
@@ -67,21 +69,23 @@ bnb/
 
 Base URL default: `http://localhost:3001`
 
-| Method | Endpoint                                 | Keterangan                                       |
-| ------ | ---------------------------------------- | ------------------------------------------------ |
-| GET    | `/api/health/live`                       | Liveness proses                                  |
-| GET    | `/api/health/ready`                      | SQLite, migrasi, freshness, dan scheduler        |
-| GET    | `/api/wbnbusdt`                          | Snapshot WBNB/USDT terbaru                       |
-| GET    | `/api/history?hours=24&limit=1440`       | Histori mentah                                   |
-| GET    | `/api/history/chart?hours=24&points=240` | Histori downsampled                              |
-| GET    | `/api/history/stats`                     | Statistik 1h/24h/7d/30d                          |
-| GET    | `/api/operations/storage`                | Retention, ukuran DB, WAL, dan backup            |
-| GET    | `/api/simulate?amount=50`                | Estimasi LP full-range                           |
-| GET    | `/api/il?from=550&to=600&invest=50`      | Kalkulator IL                                    |
-| GET    | `/api/agent/high-risk-plan`              | Proyeksi range agresif saat ini                  |
-| GET    | `/api/agent/aggressive-performance`      | P&L portfolio paper agresif dan lifecycle aktual |
-| GET    | `/api/agent/aggressive-positions/:id`    | Detail satu posisi agresif                       |
-| POST   | `/api/lp-analysis`                       | Analisis AI on-demand                            |
+| Method | Endpoint                                 | Keterangan                                         |
+| ------ | ---------------------------------------- | -------------------------------------------------- |
+| GET    | `/api/health/live`                       | Liveness proses                                    |
+| GET    | `/api/health/ready`                      | SQLite, migrasi, freshness, dan scheduler          |
+| GET    | `/api/wbnbusdt`                          | Snapshot WBNB/USDT terbaru                         |
+| GET    | `/api/history?hours=24&limit=1440`       | Histori mentah                                     |
+| GET    | `/api/history/chart?hours=24&points=240` | Histori downsampled                                |
+| GET    | `/api/history/stats`                     | Statistik 1h/24h/7d/30d                            |
+| GET    | `/api/operations/storage`                | Retention, ukuran DB, WAL, dan backup              |
+| GET    | `/api/simulate?amount=50`                | Estimasi LP full-range                             |
+| GET    | `/api/il?from=550&to=600&invest=50`      | Kalkulator IL                                      |
+| GET    | `/api/agent/high-risk-plan`              | Proyeksi range agresif saat ini                    |
+| GET    | `/api/agent/aggressive-performance`      | P&L portfolio paper agresif dan lifecycle aktual   |
+| GET    | `/api/agent/aggressive-positions/:id`    | Detail satu posisi agresif                         |
+| GET    | `/api/agent/directional-performance`     | Equity, drawdown, posisi, dan keputusan long/short |
+| GET    | `/api/agent/directional-positions/:id`   | Fill dan evaluasi satu posisi directional          |
+| POST   | `/api/lp-analysis`                       | Analisis AI on-demand                              |
 
 ## Formula Utama
 
@@ -133,6 +137,7 @@ SNAPSHOT_RETENTION_DAYS=60
 BACKUP_RETENTION_FILES=21
 PORT=3001
 AGGRESSIVE_PAPER_ENABLED=true
+DIRECTIONAL_PAPER_ENABLED=true
 ```
 
 `OPENAI_API_KEY` boleh kosong. Fitur live data, SQLite, simulator, dan IL tetap berfungsi tanpa OpenAI.
@@ -167,9 +172,10 @@ Restore backup SQLite, rollback restore, pemeriksaan retention, dan recovery BSC
 
 - DexScreener bukan sumber on-chain langsung dan dapat terlambat.
 - Simulator utama tetap memodelkan posisi full-range; High Risk / High Gain planner di dashboard Agent menghitung kandidat concentrated range untuk target 10% net per 30 hari.
-- Planner concentrated memasukkan haircut fee 30%, protocol fee, gas lifecycle, maksimal empat recenter, slippage 10 bps per recenter, occupancy harga 24 jam, dan stress harga ±5%; angka planner tetap proyeksi.
-- Panel Performa Paper Agresif berbeda dari proyeksi: ia mengelola satu portfolio aktual, memakai fee-growth on-chain hanya saat in-range, serta mencatat perubahan token, gas, slippage, stop, dan recenter. Data awal belum membuktikan target bulanan.
+- Planner concentrated `conservative-7d-v2` memasukkan haircut fee 30%, protocol fee, gas lifecycle, maksimal empat recenter, slippage 10 bps per recenter, occupancy harga 7 hari, volume terendah antara kondisi 24 jam saat ini dan rata-rata rolling 7 hari, serta stress harga ±5%; angka planner tetap proyeksi.
+- Panel Performa Paper Agresif berbeda dari proyeksi: ia mengelola satu portfolio aktual, memakai fee-growth on-chain hanya saat in-range, serta mencatat perubahan token, gas, slippage, stop, dan recenter. Dashboard membandingkan forecast dengan hasil siklus, tetapi evidence tetap `INSUFFICIENT_SAMPLE` sebelum minimal 30 posisi selesai dan 30 hari kalender; metrik ini tidak memiliki execution authority.
 - Fee share simulator memakai liquidity aktif on-chain pada snapshot saat ini. Perubahan liquidity ketika harga melintasi tick belum dapat diprediksi.
+- Directional paper memakai satu sampled close pool per menit, bukan candle OHLC atau feed perpetual native. Karena itu sentuhan TP/SL intramenit, mark/index spread, order book, dan funding exchange tidak tersedia; funding sementara diasumsikan 0.
 - APR memakai volume 24 jam terakhir sebagai proyeksi sederhana dan tidak menjamin return berikutnya.
 - Pool 0,01% bergantung pada volume tinggi untuk menghasilkan fee.
 - WBNB memiliki nilai 1:1 terhadap BNB tetapi digunakan sebagai token BEP-20.

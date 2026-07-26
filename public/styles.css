@@ -130,12 +130,13 @@ header p {
 /* Tabs */
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
 }
 
 .tab {
-  flex: 1;
+  flex: 1 1 120px;
   padding: 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);

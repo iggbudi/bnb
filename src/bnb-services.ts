@@ -1,5 +1,6 @@
 import { AgentStore } from './agent-store.js';
 import { AggressivePaperStore } from './aggressive-paper-store.js';
+import { DirectionalPaperStore } from './directional-paper-store.js';
 import { ExecutionStore } from './execution-store.js';
 import { LifecycleActivationStore } from './lifecycle-activation-store.js';
 import { OnchainStore } from './onchain-store.js';
@@ -18,12 +19,14 @@ export class BnbServiceContainer {
   readonly shadowModeStore = new ShadowModeStore();
   readonly lifecycleActivationStore = new LifecycleActivationStore();
   readonly appliedMigrations = applyApplicationMigrations();
+  readonly directionalPaperStore = new DirectionalPaperStore();
   private closed = false;
 
   close(): void {
     if (this.closed) return;
     this.closed = true;
     for (const store of [
+      this.directionalPaperStore,
       this.lifecycleActivationStore,
       this.shadowModeStore,
       this.aggressivePaperStore,

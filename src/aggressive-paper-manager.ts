@@ -134,6 +134,12 @@ function openPosition(input: {
     outOfRangeMinutes: 0,
     dataQuality: 'insufficient',
     metrics: {
+      projectionVersion: input.plan.projectionVersion,
+      historyWindowHours: input.plan.historyWindowHours,
+      historyCoveragePercent: input.plan.historyCoveragePercent,
+      observedVolume24h: input.plan.observedVolume24h,
+      conservativeVolume24h: input.plan.conservativeVolume24h,
+      volumeHaircutFactor: input.plan.volumeHaircutFactor,
       rangePercent: selected.rangePercent,
       tickLower: selected.tickLower,
       tickUpper: selected.tickUpper,
@@ -453,7 +459,11 @@ export function processAggressivePaperLifecycle(input: {
         store: input.store,
         reasonCode: input.plan.status,
         rationale: input.plan.reason,
-        metrics: { history24hCoveragePercent: input.plan.history24hCoveragePercent },
+        metrics: {
+          historyWindowHours: input.plan.historyWindowHours,
+          historyCoveragePercent: input.plan.historyCoveragePercent,
+          projectionVersion: input.plan.projectionVersion,
+        },
         now,
       });
     }

@@ -5,7 +5,14 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
-import { SchemaMigrationRunner, type SchemaMigration } from './schema-migrations.js';
+import { OnchainStore } from './onchain-store.js';
+import {
+  APPLICATION_SCHEMA_VERSION,
+  SchemaMigrationRunner,
+  APPLICATION_MIGRATIONS,
+  type SchemaMigration,
+} from './schema-migrations.js';
+import { SnapshotStore } from './snapshot-store.js';
 
 test('schema migration runner applies ordered migrations exactly once', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-migrations-'));
@@ -47,6 +54,42 @@ test('schema migration runner applies ordered migrations exactly once', () => {
       count: number;
     };
     assert.equal(count.count, 2);
+    database.close();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('application migration adds the directional paper ledger without changing snapshots', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'bnb-application-migration-'));
+  const databasePath = join(directory, 'test.sqlite');
+  const snapshots = new SnapshotStore(databasePath);
+  const onchain = new OnchainStore(databasePath);
+  snapshots.close();
+  onchain.close();
+
+  try {
+    const applied = new SchemaMigrationRunner(databasePath, APPLICATION_MIGRATIONS).migrate();
+    assert.equal(applied.at(-1)?.version, APPLICATION_SCHEMA_VERSION);
+    const database = new DatabaseSync(databasePath);
+    const tables = database
+      .prepare(
+        `SELECT name FROM sqlite_master
+         WHERE type = 'table' AND name LIKE 'directional_paper_%'
+         ORDER BY name`
+      )
+      .all() as Array<{ name: string }>;
+    assert.deepEqual(
+      tables.map(row => row.name),
+      [
+        'directional_paper_decisions',
+        'directional_paper_evaluations',
+        'directional_paper_fills',
+        'directional_paper_positions',
+        'directional_paper_runs',
+      ]
+    );
+    assert.ok(database.prepare("SELECT name FROM sqlite_master WHERE name = 'pool_snapshots'").get());
     database.close();
   } finally {
     rmSync(directory, { recursive: true, force: true });

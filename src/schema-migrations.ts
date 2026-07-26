@@ -2,6 +2,8 @@ import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 
+import { createDirectionalPaperSchema } from './directional-paper-store.js';
+
 export interface SchemaMigration {
   version: number;
   name: string;
@@ -115,6 +117,13 @@ export const APPLICATION_MIGRATIONS: readonly SchemaMigration[] = [
         CREATE INDEX IF NOT EXISTS idx_onchain_snapshots_captured_at_v2
           ON onchain_pool_snapshots(captured_at DESC);
       `);
+    },
+  },
+  {
+    version: 3,
+    name: 'directional_perpetual_paper_ledger',
+    up(database) {
+      createDirectionalPaperSchema(database);
     },
   },
 ];

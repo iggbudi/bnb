@@ -54,6 +54,12 @@ test('public routes expose liveness, readiness model, history, and security head
   assert.ok(storage.body.data.database.mainBytes > 0);
   assert.equal('databasePath' in storage.body.data.database, false);
 
+  const directional = await request('/api/agent/directional-performance');
+  assert.equal(directional.response.status, 200);
+  assert.equal(directional.body.data.mode, 'SIMULATION_ONLY');
+  assert.equal(directional.body.data.policy.liveExecutionEnabled, false);
+  assert.equal(directional.body.data.policy.leverage, 5);
+
   const execution = await request('/api/execution/status');
   assert.equal(execution.response.status, 200);
   assert.equal(execution.body.data.liveExecutionEnabled, false);

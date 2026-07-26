@@ -1,12 +1,12 @@
 # Progress dan Pekerjaan Berikutnya
 
-Terakhir diperbarui: 2026-07-24 UTC
+Terakhir diperbarui: 2026-07-26 UTC
 
 ## Status Saat Ini
 
 - Server sehat di port `3001`.
 - Build TypeScript lulus.
-- Test: **129/129 lulus**.
+- Test: **137/137 lulus**.
 - `npm audit --omit=dev`: 0 vulnerability.
 - SQLite `quick_check`: `ok`.
 - Live execution tetap **disabled**.
@@ -191,6 +191,24 @@ GET /api/execution/status
 - Runbook tersedia di `docs/runbook-storage-and-rpc-recovery.md`.
 - Backup pra-P3: `backups/bnb-viewer-pre-p3-2026-07-24T21-53-49-417Z.sqlite`.
 - Deployment sehat di `127.0.0.1:3001`; storage maintenance `lastError=null`, Shadow run 2 `errorHours=0`.
+
+## P4 — Selesai (2026-07-26 UTC)
+
+- [x] Menambahkan schema migration v3 untuk ledger directional paper yang additive tanpa mengubah `pool_snapshots` atau tabel LP.
+- [x] Menambahkan run `BACKTEST` dan `FORWARD`, keputusan per menit, posisi long/short, fill, fee, slippage, TP, SL, trailing stop, liquidation sintetis, cooldown, maximum hold, mark-to-market, equity, serta drawdown.
+- [x] Menggunakan modal awal US$50, leverage 5×, margin 50%, dan maksimum satu posisi per run; live execution selalu `false` dan tidak ada API key trading.
+- [x] Menambahkan scheduler `directional-paper`, readiness telemetry, endpoint performa/detail posisi, tab navigasi khusus **Perp Paper**, CLI backtest, dokumentasi, dan test.
+- [x] Menambahkan coverage gate 80% agar gap histori tidak dianggap sebagai rangkaian menit yang kontinu.
+- [x] Membuat backup konsisten `backups/bnb-viewer-pre-directional-2026-07-26T05-28-40-605Z.sqlite`.
+
+### Verifikasi P4
+
+- `npm run check` lulus dengan **137/137 test** dan coverage total di atas threshold.
+- SQLite migration aktif pada versi 3 dan `PRAGMA quick_check` menghasilkan `ok`.
+- Backtest awal mereplay 11.329 sampled close dari 2026-07-18 sampai 2026-07-26: 40 posisi selesai, win rate 32,5%, return net −12,56%, max drawdown 14,98%, dan fee US$5,10.
+- Hasil negatif disimpan apa adanya sebagai baseline; tidak dilakukan tuning pada sampel yang sama agar tidak menyamarkan overfitting.
+- Forward paper run ID 2 aktif dengan modal US$50; keputusan awal `WAIT/NO_DIRECTIONAL_EDGE`.
+- Keterbatasan eksplisit: data hanya sampled close pool per menit, bukan OHLC/perpetual native; tidak ada high/low intramenit, mark/index spread, order book, atau funding exchange. Funding sementara diasumsikan 0.
 
 ## Perintah Verifikasi
 

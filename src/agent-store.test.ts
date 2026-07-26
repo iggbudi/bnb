@@ -189,6 +189,10 @@ test('stores one outcome per decision and horizon and removes it from due work',
     assert.equal(learningExamples[0]?.label, 1);
     assert.equal(learningExamples[0]?.baselineAction, 'WAIT');
     assert.equal(store.getOutcomesPendingReflection().length, 1);
+    assert.deepEqual(store.outcomeCounts(), { total: 2, evaluated: 2, skipped: 0 });
+    assert.deepEqual(store.outcomeCounts(1), { total: 1, evaluated: 1, skipped: 0 });
+    assert.deepEqual(store.outcomeCounts(168), { total: 1, evaluated: 1, skipped: 0 });
+    assert.deepEqual(store.outcomeCounts(6), { total: 0, evaluated: 0, skipped: 0 });
 
     const reflection = {
       decisionId: savedDecision.id,
