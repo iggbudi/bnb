@@ -17,9 +17,9 @@ Terakhir diperbarui: 2026-07-26 UTC.
 - [x] Fase 4 — persistence, connection factory, schema ownership contribution, dan migration registry selesai dipisahkan.
 - [x] Fase 5 — scheduler task contribution dan metadata readiness selesai dipisahkan.
 - [x] Fase 6 — frontend dimodularisasi per fitur dengan bootstrap tunggal.
-- [ ] Fase 7 — belum dimulai; berikutnya enforcement boundary dan cleanup compatibility layer.
+- [x] Fase 7 — boundary enforcement, cleanup compatibility layer, dan dokumentasi arsitektur selesai.
 
-Catatan transisi: seluruh route bisnis, domain logic, application orchestration, persistence, definisi scheduler, dan renderer/polling dashboard sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan task contribution. `src/app/register-schedulers.ts` hanya meregistrasi timer dan menjalankan definisi task, sedangkan metadata critical readiness berasal dari definisi yang sama. Frontend memakai helper di `public/shared/`, modul di `public/features/`, serta satu `public/app.js` untuk tab, refresh, dan compatibility handler DOM. Runner serta connection policy SQLite berada di `shared/database`, sedangkan registry migration berada di `app/migrations.ts`. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
+Catatan akhir: seluruh route bisnis, domain logic, application orchestration, persistence, definisi scheduler, dan renderer/polling dashboard sudah dimiliki feature slice. `src/app/` menjadi composition root dan process/CLI entry point; `src/shared/` hanya berisi concern teknis netral. Frontend memakai helper di `public/shared/`, modul di `public/features/`, serta satu `public/app.js` untuk tab, refresh, dan compatibility handler DOM. Runner serta connection policy SQLite berada di `shared/database`, sedangkan registry migration berada di `app/migrations.ts`. Seluruh root compatibility wrapper dan re-export sementara sudah dihapus setelah npm script, background process, test, dan caller internal bermigrasi ke entry point final.
 
 ## 2. Prinsip dan Batasan
 
@@ -568,18 +568,18 @@ Kriteria selesai:
 
 ### Fase 7 — Enforce Boundary dan Bersihkan Compatibility Layer
 
-- [ ] Tambahkan ESLint rule atau architecture test untuk melarang deep import antarslice.
-- [ ] Larang import dari `app/` ke dalam `features/`.
-- [ ] Larang import Express/SQLite di folder domain.
-- [ ] Hapus wrapper dan re-export sementara setelah seluruh pemanggil bermigrasi.
-- [ ] Kurangi `types.ts` global dengan memindahkan tipe ke slice pemilik.
-- [ ] Perbarui README/WIKI dengan arsitektur dan cara menambah slice.
-- [ ] Tambahkan Architecture Decision Record singkat untuk aturan vertical slicing.
+- [x] Tambahkan ESLint rule atau architecture test untuk melarang deep import antarslice.
+- [x] Larang import dari `app/` ke dalam `features/`.
+- [x] Larang import Express/SQLite di folder domain.
+- [x] Hapus wrapper dan re-export sementara setelah seluruh pemanggil bermigrasi.
+- [x] Kurangi `types.ts` global dengan memindahkan tipe ke slice pemilik.
+- [x] Perbarui README/WIKI dengan arsitektur dan cara menambah slice.
+- [x] Tambahkan Architecture Decision Record singkat untuk aturan vertical slicing.
 
 Kriteria selesai:
 
-- Boundary tervalidasi otomatis di CI.
-- Tidak ada file bisnis tersisa di root `src/` kecuali compatibility entry point yang memang diperlukan.
+- [x] Boundary tervalidasi otomatis di CI.
+- [x] Tidak ada file bisnis atau compatibility entry point tersisa di root `src/`.
 
 ## 9. Strategi Commit
 
@@ -672,16 +672,16 @@ Mitigasi:
 
 Vertical slicing dianggap selesai ketika:
 
-- [ ] Delapan slice memiliki direktori dan public API yang jelas.
-- [ ] `app/` hanya melakukan composition, route aggregation, scheduler aggregation, startup, dan shutdown.
-- [ ] Route, task, domain logic, persistence, serta test suatu fitur berada dalam slice yang sama.
-- [ ] Tidak ada deep import antarslice.
-- [ ] Domain tidak bergantung pada Express, SQLite, scheduler, atau environment variable.
-- [ ] API, schema database, environment variable, scheduler, dan UI tetap backward-compatible.
-- [ ] `npm run check` lulus dengan seluruh test dan coverage threshold.
-- [ ] SQLite migration tests serta `PRAGMA quick_check` lulus.
-- [ ] Architecture boundary diperiksa otomatis oleh CI.
-- [ ] Dokumentasi arsitektur dan panduan menambah fitur telah diperbarui.
+- [x] Delapan slice memiliki direktori dan public API yang jelas.
+- [x] `app/` hanya melakukan composition, route aggregation, scheduler aggregation, startup, shutdown, dan process/CLI entry point.
+- [x] Route, task, domain logic, persistence, serta test suatu fitur berada dalam slice yang sama.
+- [x] Tidak ada deep import antarslice.
+- [x] Domain tidak bergantung pada Express, SQLite, scheduler, atau environment variable.
+- [x] API, schema database, environment variable, scheduler, dan UI tetap backward-compatible.
+- [x] `npm run check` lulus dengan seluruh test dan coverage threshold.
+- [x] SQLite migration tests serta `PRAGMA quick_check` lulus.
+- [x] Architecture boundary diperiksa otomatis oleh CI.
+- [x] Dokumentasi arsitektur dan panduan menambah fitur telah diperbarui.
 
 ## 13. Urutan Eksekusi yang Direkomendasikan
 

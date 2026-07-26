@@ -7,7 +7,7 @@
     "node": ">=22.5.0"
   },
   "scripts": {
-    "dev": "tsx watch src/server-bnb.ts",
+    "dev": "tsx watch src/app/server.ts",
     "build": "tsc",
     "test": "tsx --test src/*.test.ts src/features/*/*.test.ts src/features/*/*/*.test.ts src/shared/*/*.test.ts",
     "test:coverage": "tsx --test --experimental-test-coverage --test-coverage-lines=75 --test-coverage-functions=75 --test-coverage-branches=65 src/*.test.ts src/features/*/*.test.ts src/features/*/*/*.test.ts src/shared/*/*.test.ts",
@@ -15,12 +15,12 @@
     "format": "prettier --write src public scripts docs README.md WIKI.md progress.md package.json tsconfig.json eslint.config.js .github",
     "format:check": "prettier --check src public scripts docs README.md WIKI.md progress.md package.json tsconfig.json eslint.config.js .github",
     "check": "npm run lint && npm run format:check && npm run build && npm run test:coverage",
-    "start": "node dist/server-bnb.js",
+    "start": "node dist/app/server.js",
     "background:start": "bash scripts/start-background.sh",
     "background:stop": "bash scripts/stop-background.sh",
     "background:status": "bash scripts/status-background.sh",
     "background:logs": "tail -f logs/server.log",
-    "backtest:directional": "tsx src/directional-backtest-cli.ts"
+    "backtest:directional": "tsx src/app/directional-backtest.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

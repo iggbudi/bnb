@@ -41,18 +41,18 @@ Fee tier diverifikasi langsung melalui fungsi `fee()` pada contract pool. Pool d
 ```text
 bnb/
 ├── src/
-│   ├── server-bnb.ts          # Bootstrap listener dan shutdown
-│   ├── bnb-app.ts             # Express app/runtime tanpa listen atau timer
-│   ├── bnb-routes.ts          # System routes dan frontend/error fallback
-│   ├── bnb-services.ts        # Lifecycle seluruh SQLite store
-│   ├── bnb-schedulers.ts      # Timer dan initial background cycles
-│   ├── schema-migrations.ts   # Migrasi SQLite berurutan dan idempotent
-│   ├── dexscreener.ts         # Integrasi DexScreener
-│   ├── amm.ts                 # IL dan analisis AMM
-│   ├── snapshot-store.ts      # SQLite, statistik, chart, backup
-│   ├── directional-*.ts       # Strategi, ledger, lifecycle, dan CLI backtest long/short
-│   ├── openai-analysis.ts     # GPT structured analysis
-│   └── *.test.ts
+│   ├── app/                   # Composition, config, migration/task registry, entry point
+│   ├── features/              # Delapan vertical slice dan public API masing-masing
+│   │   ├── market-data/
+│   │   ├── lp-analysis/
+│   │   ├── paper-agent/
+│   │   ├── aggressive-paper/
+│   │   ├── directional-paper/
+│   │   ├── learning/
+│   │   ├── lp-execution/
+│   │   └── operations/
+│   ├── shared/                # Database, HTTP, dan runtime primitives netral
+│   └── *.test.ts              # Integration/architecture test lintas aplikasi
 ├── public/
 │   ├── index.html
 │   ├── styles.css
@@ -65,6 +65,8 @@ bnb/
 ├── backups/                   # Backup harian, git-ignored
 └── package.json
 ```
+
+Detail boundary, layer, dan langkah menambah slice tersedia di [`docs/architecture.md`](docs/architecture.md). Keputusan modular monolith dicatat di [`ADR-0001`](docs/adr/0001-vertical-slice-modular-monolith.md).
 
 ## API
 

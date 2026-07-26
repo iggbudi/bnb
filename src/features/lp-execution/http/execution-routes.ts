@@ -20,7 +20,7 @@ import {
 } from '../infrastructure/pancakeswap-v3-position-tracker.js';
 import type { PancakeV3OnchainState } from '../infrastructure/pancakeswap-v3-onchain.js';
 import type { PositionStore } from '../infrastructure/position-store.js';
-import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../validation.js';
+import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../shared/http/validation.js';
 
 export interface ExecutionStatusView {
   ready: boolean;

@@ -1,7 +1,7 @@
 import type { Express, RequestHandler } from 'express';
 
 import type { AggressivePaperStore } from '../infrastructure/aggressive-paper-store.js';
-import { parsePositiveNumber } from '../../../validation.js';
+import { parsePositiveNumber } from '../../../shared/http/validation.js';
 
 export interface AggressivePaperPolicy {
   initialCapitalUsd: number;

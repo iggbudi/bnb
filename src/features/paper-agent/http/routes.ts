@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 
 import type { AgentStore } from '../infrastructure/agent-store.js';
-import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../validation.js';
+import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../shared/http/validation.js';
 
 export type AgentHorizon = 1 | 6 | 24 | 168;
 

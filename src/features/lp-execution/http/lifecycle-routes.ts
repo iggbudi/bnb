@@ -6,7 +6,7 @@ import { PANCAKE_V3_POSITION_MANAGER } from '../infrastructure/pancakeswap-v3-ex
 import { PANCAKE_V3_SWAP_ROUTER } from '../infrastructure/pancakeswap-v3-exit.js';
 import type { PositionStore } from '../infrastructure/position-store.js';
 import type { ShadowModeStore } from '../infrastructure/shadow-mode-store.js';
-import { parsePositiveNumber } from '../../../validation.js';
+import { parsePositiveNumber } from '../../../shared/http/validation.js';
 
 export interface LifecycleRuntimeView {
   activation: { mode: string };

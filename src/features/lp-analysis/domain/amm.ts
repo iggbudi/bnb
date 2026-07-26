@@ -11,14 +11,14 @@
  * Dipisah dari server supaya bisa dipakai di mana saja
  */
 
+import type { Pair } from '../../market-data/index.js';
 import type {
-  Pair,
-  PoolAnalysis,
   ILCalculation,
   LPInvestmentProjection,
+  PoolAnalysis,
   ScreeningFilters,
   ScreeningResult,
-} from '../../../types.js';
+} from './analysis-types.js';
 
 // ============================================
 // 📌 IMPERMANENT LOSS CALCULATOR

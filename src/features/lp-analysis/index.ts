@@ -1,4 +1,5 @@
 export { registerLpAnalysisRoutes } from './http/routes.js';
+export * from './domain/analysis-types.js';
 export type { LpAnalysisRouteDependencies } from './http/routes.js';
 export * from './domain/amm.js';
 export * from './domain/concentrated-liquidity.js';

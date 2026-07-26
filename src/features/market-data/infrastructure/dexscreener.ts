@@ -9,7 +9,7 @@
  * API ini gratis dan tidak perlu API key!
  */
 
-import type { DexScreenerResponse, Pair } from '../../../types.js';
+import type { DexScreenerResponse, Pair } from '../domain/market-types.js';
 import { fetchJsonWithRetry, SingleFlight } from '../../../shared/runtime/upstream-resilience.js';
 
 const DEXSCREENER_API = 'https://api.dexscreener.com';

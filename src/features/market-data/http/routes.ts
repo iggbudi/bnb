@@ -5,7 +5,7 @@ import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
 import { safeErrorMessage } from '../../../shared/http/errors.js';
 import type { SnapshotStore } from '../infrastructure/snapshot-store.js';
 import { UpstreamError } from '../../../shared/runtime/upstream-resilience.js';
-import { parsePositiveNumber } from '../../../validation.js';
+import { parsePositiveNumber } from '../../../shared/http/validation.js';
 
 export interface MarketDataRouteDependencies {
   snapshotStore: Pick<SnapshotStore, 'getHistory' | 'getChartHistory' | 'getStatistics' | 'count'>;

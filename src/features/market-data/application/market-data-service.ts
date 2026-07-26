@@ -1,6 +1,6 @@
 import type { OnchainStore } from '../infrastructure/onchain-store.js';
 import type { SnapshotStore } from '../infrastructure/snapshot-store.js';
-import type { Pair } from '../../../types.js';
+import type { Pair } from '../domain/market-types.js';
 import {
   feeGrowthDelta,
   feeGrowthX128ToTokenPerLiquidity,

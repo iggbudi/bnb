@@ -25,7 +25,7 @@ printf '\n[%s] Building application\n' "$(date -Iseconds)" >> "$BUILD_LOG"
 npm run build >> "$BUILD_LOG" 2>&1
 
 printf '\n[%s] Starting background server\n' "$(date -Iseconds)" >> "$LOG_FILE"
-nohup node dist/server-bnb.js >> "$LOG_FILE" 2>&1 < /dev/null &
+nohup node dist/app/server.js >> "$LOG_FILE" 2>&1 < /dev/null &
 pid=$!
 echo "$pid" > "$PID_FILE"
 

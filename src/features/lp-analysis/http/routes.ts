@@ -3,7 +3,7 @@ import type { Express, RequestHandler } from 'express';
 import { calculateIL } from '../domain/amm.js';
 import { safeErrorMessage } from '../../../shared/http/errors.js';
 import { UpstreamError } from '../../../shared/runtime/upstream-resilience.js';
-import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../validation.js';
+import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../shared/http/validation.js';
 
 export interface LpAnalysisRouteDependencies {
   rpcMiddleware: RequestHandler;

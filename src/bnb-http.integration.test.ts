@@ -12,7 +12,7 @@ process.env.OPENAI_API_KEY = '';
 process.env.LIVE_EXECUTION_ENABLED = 'false';
 process.env.EXECUTION_ADMIN_TOKEN = '';
 
-const { bnbRuntime } = await import('./bnb-app.js');
+const { bnbRuntime } = await import('./app/runtime.js');
 assert.deepEqual(bnbRuntime.schedulerRegistry.list(), [], 'importing app must not start schedulers');
 
 const server = bnbRuntime.app.listen(0, '127.0.0.1');

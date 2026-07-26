@@ -1,4 +1,5 @@
 export { registerMarketDataRoutes } from './http/routes.js';
+export * from './domain/market-types.js';
 export type { MarketDataRouteDependencies } from './http/routes.js';
 export * from './infrastructure/dexscreener.js';
 export * from './infrastructure/snapshot-store.js';

@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 import { LpAnalysisService } from '../features/lp-analysis/index.js';
-import { registerFrontendAndErrorRoutes } from '../bnb-routes.js';
+import { registerFrontendAndErrorRoutes } from './register-fallback-routes.js';
 import { APPLICATION_SCHEMA_VERSION } from './migrations.js';
 import { OperationsService, StorageMaintenanceService } from '../features/operations/index.js';
 import {

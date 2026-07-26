@@ -41,11 +41,12 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 
 ## 🧱 Struktur Aplikasi dan Quality Gates
 
-- `src/server-bnb.ts` hanya melakukan bootstrap listen dan graceful shutdown.
-- `src/bnb-app.ts` merakit aplikasi HTTP dan runtime tanpa memulai listener atau timer ketika di-import oleh test.
-- `src/bnb-routes.ts`, `src/bnb-services.ts`, dan `src/bnb-schedulers.ts` memisahkan system routes, lifecycle store/service, dan scheduler.
-- `src/schema-migrations.ts` menjalankan migrasi SQLite berurutan dan idempotent melalui tabel `schema_migrations`; kegagalan satu migrasi di-rollback atomik.
+- `src/app/` adalah composition root untuk config, HTTP, migration/task aggregation, process lifecycle, dan CLI entry point.
+- Delapan slice di `src/features/` memiliki domain, application service, persistence, route, task, CLI, dan test masing-masing.
+- `src/shared/` hanya berisi concern teknis netral; arah dependensi dijaga sebagai `app -> features -> shared`.
 - Frontend memakai `public/app.js` sebagai bootstrap tunggal, helper netral di `public/shared/`, dan renderer/polling terlokalisasi di `public/features/`.
+- Architecture test melarang deep import antarslice, import feature ke `app`, dan dependency Express/SQLite/scheduler di domain.
+- Panduan struktur dan cara menambah slice tersedia di [`docs/architecture.md`](docs/architecture.md); keputusan utamanya dicatat di [`ADR-0001`](docs/adr/0001-vertical-slice-modular-monolith.md).
 - `npm run check` menjalankan ESLint, Prettier check, TypeScript build, seluruh unit/integration test, dan coverage threshold. Workflow yang sama tersedia di `.github/workflows/ci.yml`.
 
 ## 🎯 Fitur

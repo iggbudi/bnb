@@ -7,13 +7,12 @@ import test from 'node:test';
 
 import { OnchainStore } from './features/market-data/index.js';
 import {
+  APPLICATION_MIGRATIONS,
   APPLICATION_SCHEMA_VERSION,
   FEATURE_SCHEMA_CONTRIBUTIONS,
-  SchemaMigrationRunner,
-  APPLICATION_MIGRATIONS,
   applyApplicationMigrations,
-  type SchemaMigration,
-} from './schema-migrations.js';
+} from './app/migrations.js';
+import { SchemaMigrationRunner, type SchemaMigration } from './shared/database/migration-runner.js';
 import { SnapshotStore } from './features/market-data/index.js';
 
 test('schema migration runner applies ordered migrations exactly once', () => {
