@@ -38,6 +38,7 @@ import { evaluateExecutionReadiness } from '../execution-control.js';
 import { registerAggressivePaperRoutes } from '../features/aggressive-paper/index.js';
 import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
 import { registerLearningRoutes } from '../features/learning/index.js';
+import { registerLpAnalysisRoutes } from '../features/lp-analysis/index.js';
 import { registerMarketDataRoutes } from '../features/market-data/index.js';
 import { registerOperationsRoutes } from '../features/operations/index.js';
 import { registerPaperAgentRoutes } from '../features/paper-agent/index.js';
@@ -127,7 +128,7 @@ import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../validation
 import type { AILPAnalysis, LPAnalysisMetrics } from '../openai-analysis.js';
 import type { LPInvestmentProjection, Pair } from '../types.js';
 import { safeErrorMessage } from '../shared/http/errors.js';
-import { SingleFlight, UpstreamError } from '../upstream-resilience.js';
+import { SingleFlight } from '../upstream-resilience.js';
 import { loadBnbAppConfig } from './config.js';
 import { BnbServiceContainer } from './container.js';
 import { createBnbHttpApp } from './create-app.js';
@@ -174,10 +175,6 @@ const schedulerRegistry = new SchedulerRegistry();
 const aiSingleFlight = new SingleFlight();
 const openAiLock = new AsyncLock();
 const rpcHeavyGate = new ConcurrencyGate(config.rpcHeavyConcurrency);
-
-function upstreamErrorCode(error: unknown): string {
-  return error instanceof UpstreamError ? error.code : 'UPSTREAM_UNAVAILABLE';
-}
 
 function rpcHeavyLimit(req: Request, res: Response, next: NextFunction): void {
   const release = rpcHeavyGate.tryAcquire();
@@ -2166,113 +2163,30 @@ app.post('/api/execution/exit-proposals/:id/receipts', async (req, res) => {
   }
 });
 
-// Simulate LP
-app.get('/api/simulate', rpcHeavyLimit, async (req, res) => {
-  try {
-    const investment = parsePositiveNumberOrDefault(req.query.amount, 'amount', 50);
-
-    console.log(`💰 Simulating LP with $${investment}...`);
+registerLpAnalysisRoutes(app, {
+  rpcMiddleware: rpcHeavyLimit,
+  aiRateLimitMiddleware: http.limitAiRequests,
+  async simulate(investment) {
     const [pair, onchain] = await Promise.all([getWBNBUSDTPair(), captureOnchainPoolState()]);
-    const analysis = analyzeWBNBUSDT(pair);
-    const simulation = simulateLP(investment, analysis, onchain);
-
-    res.json({
-      success: true,
-      data: simulation,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('Simulation error:', error);
-    const isInputError = error instanceof Error && error.message.startsWith('Parameter');
-    res.status(isInputError ? 400 : 500).json({
-      success: false,
-      error: isInputError
-        ? safeErrorMessage(error, 'Invalid simulation input')
-        : 'Simulation temporarily unavailable',
-      code: isInputError ? 'INVALID_INPUT' : upstreamErrorCode(error),
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-// Generate an on-demand AI feasibility analysis (cached for 15 minutes)
-app.post(
-  '/api/lp-analysis',
-  (req, res, next) => {
-    http.limitAiRequests(req, res, next);
+    return simulateLP(investment, analyzeWBNBUSDT(pair), onchain);
   },
-  rpcHeavyLimit,
-  async (req, res) => {
-    try {
-      const [pair, onchain] = await Promise.all([getWBNBUSDTPair(), captureOnchainPoolState()]);
-      const poolAnalysis = analyzeWBNBUSDT(pair);
-      const investmentProjection = buildCurrentInvestmentProjection(poolAnalysis, onchain);
-      const cached = getCached<AILPAnalysis>('lp-ai-analysis-v2.7', AI_ANALYSIS_CACHE_TTL);
+  async generateAiAnalysis() {
+    const [pair, onchain] = await Promise.all([getWBNBUSDTPair(), captureOnchainPoolState()]);
+    const poolAnalysis = analyzeWBNBUSDT(pair);
+    const investmentProjection = buildCurrentInvestmentProjection(poolAnalysis, onchain);
+    const cached = getCached<AILPAnalysis>('lp-ai-analysis-v2.7', AI_ANALYSIS_CACHE_TTL);
+    if (cached) return { ...cached, investmentProjection, cached: true };
 
-      if (cached) {
-        res.json({
-          success: true,
-          data: { ...cached, investmentProjection, cached: true },
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-
-      const generated = await aiSingleFlight.run('lp-ai-analysis-v2.7', async () => {
-        const sharedCached = getCached<AILPAnalysis>('lp-ai-analysis-v2.7', AI_ANALYSIS_CACHE_TTL);
-        if (sharedCached) return { analysis: sharedCached, cached: true };
-        const metrics = buildLPAnalysisMetrics(poolAnalysis);
-        const analysis = await openAiLock.run(() => analyzeLPWithOpenAI(metrics));
-        setCache('lp-ai-analysis-v2.7', analysis);
-        return { analysis, cached: false };
-      });
-
-      res.json({
-        success: true,
-        data: { ...generated.analysis, investmentProjection, cached: generated.cached },
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('AI LP analysis error:', error);
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      const status = message.includes('OPENAI_API_KEY')
-        ? 503
-        : error instanceof Error && error.name === 'TimeoutError'
-          ? 504
-          : 502;
-
-      res.status(status).json({
-        success: false,
-        error: message.includes('OPENAI_API_KEY')
-          ? 'AI analysis is not configured on the server'
-          : 'AI analysis is temporarily unavailable',
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-);
-
-// Calculate IL
-app.get('/api/il', (req, res) => {
-  try {
-    const from = parsePositiveNumber(req.query.from, 'from');
-    const to = parsePositiveNumber(req.query.to, 'to');
-    const invest = parsePositiveNumber(req.query.invest, 'invest');
-    const result = calculateIL(from, to, invest);
-
-    res.json({
-      success: true,
-      data: result,
-      timestamp: new Date().toISOString(),
+    const generated = await aiSingleFlight.run('lp-ai-analysis-v2.7', async () => {
+      const sharedCached = getCached<AILPAnalysis>('lp-ai-analysis-v2.7', AI_ANALYSIS_CACHE_TTL);
+      if (sharedCached) return { analysis: sharedCached, cached: true };
+      const metrics = buildLPAnalysisMetrics(poolAnalysis);
+      const analysis = await openAiLock.run(() => analyzeLPWithOpenAI(metrics));
+      setCache('lp-ai-analysis-v2.7', analysis);
+      return { analysis, cached: false };
     });
-  } catch (error) {
-    const isInputError = error instanceof Error && error.message.startsWith('Parameter');
-    res.status(isInputError ? 400 : 500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString(),
-    });
-  }
+    return { ...generated.analysis, investmentProjection, cached: generated.cached };
+  },
 });
 
 // ============================================
