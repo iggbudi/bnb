@@ -1,8 +1,8 @@
 import { existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 
-import type { OnchainStore } from '../../../onchain-store.js';
-import type { DatabaseStorageStats, SnapshotStore, WalCheckpointResult } from '../../../snapshot-store.js';
+import type { OnchainStore } from '../../market-data/index.js';
+import type { DatabaseStorageStats, SnapshotStore, WalCheckpointResult } from '../../market-data/index.js';
 
 const DAILY_BACKUP_PATTERN = /^bnb-viewer-\d{4}-\d{2}-\d{2}\.sqlite$/;
 

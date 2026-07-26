@@ -1,9 +1,9 @@
 import { timingSafeEqual } from 'node:crypto';
-import type { AgentStore } from '../../../agent-store.js';
-import type { ExecutionStore } from '../../../execution-store.js';
-import type { LifecycleActivationStore } from '../../../lifecycle-activation-store.js';
-import type { PositionStore } from '../../../position-store.js';
-import type { ShadowModeStore } from '../../../shadow-mode-store.js';
+import type { AgentStore } from '../../paper-agent/index.js';
+import type { ExecutionStore } from '../infrastructure/execution-store.js';
+import type { LifecycleActivationStore } from '../../learning/index.js';
+import type { PositionStore } from '../infrastructure/position-store.js';
+import type { ShadowModeStore } from '../infrastructure/shadow-mode-store.js';
 import type { LearningService } from '../../learning/index.js';
 import type { MarketDataService } from '../../market-data/index.js';
 import { evaluateExecutionReadiness, type ExecutionLimits } from '../domain/execution-control.js';

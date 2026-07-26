@@ -1,5 +1,5 @@
-import { DirectionalPaperStore } from '../../../directional-paper-store.js';
-import { SnapshotStore } from '../../../snapshot-store.js';
+import { DirectionalPaperStore } from '../infrastructure/directional-paper-store.js';
+import { SnapshotStore } from '../../market-data/index.js';
 import { runDirectionalForwardCycle } from './directional-paper-manager.js';
 import {
   DEFAULT_DIRECTIONAL_CONFIG,

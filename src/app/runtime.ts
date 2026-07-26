@@ -13,7 +13,7 @@ import { dirname, join } from 'path';
 
 import { LpAnalysisService } from '../features/lp-analysis/index.js';
 import { registerFrontendAndErrorRoutes } from '../bnb-routes.js';
-import { APPLICATION_SCHEMA_VERSION } from '../schema-migrations.js';
+import { APPLICATION_SCHEMA_VERSION } from './migrations.js';
 import { OperationsService, StorageMaintenanceService } from '../features/operations/index.js';
 import {
   AGGRESSIVE_INITIAL_CAPITAL_USD,

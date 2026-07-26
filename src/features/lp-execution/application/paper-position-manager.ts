@@ -1,5 +1,5 @@
 import { calculateIL } from '../../lp-analysis/index.js';
-import type { PaperAgentDecision } from '../../../agent-store.js';
+import type { PaperAgentDecision } from '../../paper-agent/index.js';
 import {
   FULL_RANGE_FEE_ACCOUNTING_VERSION,
   fullRangeFeeGrowthIncrement,
@@ -12,8 +12,8 @@ import {
   PositionStore,
   type PositionEvaluationRecord,
   type PositionRecord,
-} from '../../../position-store.js';
-import { SnapshotStore } from '../../../snapshot-store.js';
+} from '../infrastructure/position-store.js';
+import { SnapshotStore } from '../../market-data/index.js';
 
 const MINIMUM_HOLD_HOURS = 7 * 24;
 const FINAL_REVIEW_HOURS = 14 * 24;

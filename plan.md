@@ -14,9 +14,10 @@ Terakhir diperbarui: 2026-07-26 UTC.
 - [x] Fase 1 — composition root, konfigurasi, HTTP app factory, container, scheduler registration, dan process bootstrap telah dipindahkan ke `src/app/`.
 - [x] Fase 2 — route seluruh 8 slice selesai diekstrak ke `src/features/`.
 - [x] Fase 3 — domain logic, application service/use case, CLI directional, adapter execution, dan test terkait telah dipindahkan ke slice pemiliknya; orchestration runtime telah dibungkus service ber-Dependency Injection.
-- [ ] Fase 4–7 — belum dimulai; berikutnya pemindahan persistence dan kepemilikan schema.
+- [x] Fase 4 — persistence, connection factory, schema ownership contribution, dan migration registry selesai dipisahkan.
+- [ ] Fase 5–7 — belum dimulai; berikutnya scheduler task contribution.
 
-Catatan transisi: seluruh route bisnis, domain logic, dan application orchestration sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan runtime hooks. Store SQLite masih berada di root hingga Fase 4. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
+Catatan transisi: seluruh route bisnis, domain logic, application orchestration, dan persistence sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan runtime hooks. Runner serta connection policy SQLite berada di `shared/database`, sedangkan registry migration berada di `app/migrations.ts`. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
 
 ## 2. Prinsip dan Batasan
 
@@ -517,20 +518,20 @@ Kriteria selesai:
 
 ### Fase 4 — Pindahkan Persistence dan Kepemilikan Schema
 
-- [ ] Pindahkan setiap store ke `features/<slice>/infrastructure/`.
-- [ ] Satukan database connection factory agar store tidak menciptakan kebijakan koneksi berbeda-beda.
-- [ ] Pertahankan tabel dan query behavior yang ada.
-- [ ] Setiap slice mengekspor migration/schema contribution.
-- [ ] Runner mengumpulkan migration contribution dalam urutan versi yang tetap deterministik.
-- [ ] Jangan mengubah migration lama yang mungkin sudah diterapkan pada database pengguna.
-- [ ] Tambahkan test bahwa database lama dapat dibuka dan migration idempotent.
-- [ ] Jalankan `PRAGMA quick_check` pada fixture hasil migration.
+- [x] Pindahkan setiap store ke `features/<slice>/infrastructure/`.
+- [x] Satukan database connection factory agar store tidak menciptakan kebijakan koneksi berbeda-beda.
+- [x] Pertahankan tabel dan query behavior yang ada.
+- [x] Setiap slice mengekspor migration/schema contribution.
+- [x] Runner mengumpulkan migration contribution dalam urutan versi yang tetap deterministik.
+- [x] Jangan mengubah migration lama yang mungkin sudah diterapkan pada database pengguna.
+- [x] Tambahkan test bahwa database lama dapat dibuka dan migration idempotent.
+- [x] Jalankan `PRAGMA quick_check` pada fixture hasil migration.
 
 Kriteria selesai:
 
-- Ownership tabel jelas per slice.
-- `APPLICATION_SCHEMA_VERSION` dan compatibility database tetap benar.
-- Tidak ada data migration destruktif.
+- [x] Ownership tabel jelas per slice.
+- [x] `APPLICATION_SCHEMA_VERSION` dan compatibility database tetap benar.
+- [x] Tidak ada data migration destruktif.
 
 ### Fase 5 — Ubah Scheduler Menjadi Task Contribution
 

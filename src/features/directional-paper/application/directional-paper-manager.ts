@@ -4,7 +4,7 @@ import {
   type DirectionalPaperPosition,
   type DirectionalPaperRun,
   type DirectionalRunPerformance,
-} from '../../../directional-paper-store.js';
+} from '../infrastructure/directional-paper-store.js';
 import {
   DEFAULT_DIRECTIONAL_CONFIG,
   directionalRequiredHistoryPoints,
@@ -17,7 +17,7 @@ import {
   type DirectionalSignal,
   type DirectionalStrategyConfig,
 } from '../domain/directional-strategy.js';
-import { SnapshotStore, type PoolSnapshot } from '../../../snapshot-store.js';
+import { SnapshotStore, type PoolSnapshot } from '../../market-data/index.js';
 
 export interface DirectionalLifecycleResult {
   processed: boolean;

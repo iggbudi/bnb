@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { AgentStore, type PaperAgentDecisionInput } from './agent-store.js';
+import { AgentStore, type PaperAgentDecisionInput } from '../../paper-agent/index.js';
 import { PositionStore } from './position-store.js';
 
 const signal: PaperAgentDecisionInput = {

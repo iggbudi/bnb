@@ -1,4 +1,4 @@
-import { AgentStore } from '../../../agent-store.js';
+import { AgentStore } from '../../paper-agent/index.js';
 import {
   MIN_TRAINING_ROWS,
   RETRAIN_EVERY_NEW_OUTCOMES,

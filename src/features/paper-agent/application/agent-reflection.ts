@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import type { PaperAgentOutcomeDetail } from '../../../agent-store.js';
+import type { PaperAgentOutcomeDetail } from '../infrastructure/agent-store.js';
 
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.6-sol';

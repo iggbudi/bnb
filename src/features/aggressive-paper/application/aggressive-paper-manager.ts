@@ -3,7 +3,7 @@ import {
   type AggressiveAction,
   type AggressivePaperEvaluationRecord,
   type AggressivePaperPosition,
-} from '../../../aggressive-paper-store.js';
+} from '../infrastructure/aggressive-paper-store.js';
 import {
   concentratedAmountsAtPrice,
   concentratedPositionForCapital,
@@ -12,7 +12,7 @@ import {
 import type { HighRiskStrategyPlan } from '../domain/high-risk-strategy.js';
 import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
 import { estimateLifecycleGas } from '../../lp-execution/index.js';
-import { SnapshotStore } from '../../../snapshot-store.js';
+import { SnapshotStore } from '../../market-data/index.js';
 
 export const AGGRESSIVE_PAPER_STRATEGY_VERSION = 'concentrated-aggressive-v1.0';
 export const AGGRESSIVE_INITIAL_CAPITAL_USD = 50;

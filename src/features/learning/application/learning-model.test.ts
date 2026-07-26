@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { PaperAgentDecisionInput } from '../../../agent-store.js';
+import type { PaperAgentDecisionInput } from '../../paper-agent/index.js';
 import {
   applyLearningModel,
   predictLPBeatsHold,

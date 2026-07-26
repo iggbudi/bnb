@@ -58,6 +58,32 @@ test('feature slices cannot import app or another slice internals', () => {
   assert.deepEqual(violations, []);
 });
 
+test('shared modules do not depend on app or feature slices', () => {
+  const violations = typescriptFiles(join(sourceRoot, 'shared')).flatMap(file =>
+    imports(readFileSync(file, 'utf8'))
+      .filter(specifier => specifier.includes('/app/') || specifier.includes('/features/'))
+      .map(specifier => `${relative(sourceRoot, file)} -> ${specifier}`)
+  );
+
+  assert.deepEqual(violations, []);
+});
+
+test('feature stores use the shared SQLite connection policy', () => {
+  const violations = typescriptFiles(featuresRoot)
+    .filter(file => file.endsWith('-store.ts'))
+    .filter(file => {
+      const source = readFileSync(file, 'utf8');
+      return (
+        !source.includes('openApplicationDatabase') ||
+        source.includes('new DatabaseSync') ||
+        source.includes('process.env.SQLITE_PATH')
+      );
+    })
+    .map(file => relative(sourceRoot, file));
+
+  assert.deepEqual(violations, []);
+});
+
 test('slice domain modules stay independent from HTTP, SQLite, env, and app', () => {
   const violations: string[] = [];
   for (const file of typescriptFiles(featuresRoot).filter(path => path.includes(`${sep}domain${sep}`))) {

@@ -1,6 +1,6 @@
 import { calculateIL } from '../../lp-analysis/index.js';
-import type { PaperAgentDecision, PaperAgentOutcomeInput } from '../../../agent-store.js';
-import type { PoolSnapshot } from '../../../snapshot-store.js';
+import type { PaperAgentDecision, PaperAgentOutcomeInput } from '../infrastructure/agent-store.js';
+import type { PoolSnapshot } from '../../market-data/index.js';
 
 export const PAPER_AGENT_HORIZONS = [1, 6, 24, 168] as const;
 export type PaperAgentHorizon = (typeof PAPER_AGENT_HORIZONS)[number];

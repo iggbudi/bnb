@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { AgentStore, type PaperAgentDecision } from './agent-store.js';
-import { FULL_RANGE_FEE_ACCOUNTING_VERSION } from './full-range-fee.js';
-import type { PaperPositionLifecycleResult } from './paper-position-manager.js';
+import { AgentStore, type PaperAgentDecision } from '../../paper-agent/index.js';
+import { FULL_RANGE_FEE_ACCOUNTING_VERSION } from '../../lp-analysis/index.js';
+import type { PaperPositionLifecycleResult } from '../application/paper-position-manager.js';
 import { PositionStore } from './position-store.js';
 import { ShadowModeStore } from './shadow-mode-store.js';
 

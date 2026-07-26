@@ -1,5 +1,5 @@
-import type { OnchainStore } from '../../../onchain-store.js';
-import type { SnapshotStore } from '../../../snapshot-store.js';
+import type { OnchainStore } from '../infrastructure/onchain-store.js';
+import type { SnapshotStore } from '../infrastructure/snapshot-store.js';
 import type { Pair } from '../../../types.js';
 import {
   feeGrowthDelta,

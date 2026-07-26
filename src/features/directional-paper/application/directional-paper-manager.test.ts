@@ -5,12 +5,12 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { runDirectionalBacktest, processDirectionalSnapshot } from './directional-paper-manager.js';
-import { DirectionalPaperStore } from '../../../directional-paper-store.js';
+import { DirectionalPaperStore } from '../infrastructure/directional-paper-store.js';
 import {
   DEFAULT_DIRECTIONAL_CONFIG,
   type DirectionalStrategyConfig,
 } from '../domain/directional-strategy.js';
-import type { PoolSnapshot } from '../../../snapshot-store.js';
+import type { PoolSnapshot } from '../../market-data/index.js';
 
 const CONFIG: DirectionalStrategyConfig = {
   ...DEFAULT_DIRECTIONAL_CONFIG,

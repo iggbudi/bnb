@@ -6,3 +6,5 @@ export * from './domain/outcome-interpretation.js';
 export * from './application/paper-agent-evaluator.js';
 export * from './application/agent-reflection.js';
 export * from './application/paper-agent-service.js';
+export * from './infrastructure/agent-store.js';
+export { paperAgentSchema } from './infrastructure/schema.js';

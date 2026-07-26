@@ -1,6 +1,6 @@
 import type { Express } from 'express';
 
-import type { AgentStore } from '../../../agent-store.js';
+import type { AgentStore } from '../../paper-agent/index.js';
 
 export interface LearningRouteDependencies {
   store: Pick<AgentStore, 'getRecentModels'>;

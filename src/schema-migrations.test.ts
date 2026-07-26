@@ -5,14 +5,16 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
-import { OnchainStore } from './onchain-store.js';
+import { OnchainStore } from './features/market-data/index.js';
 import {
   APPLICATION_SCHEMA_VERSION,
+  FEATURE_SCHEMA_CONTRIBUTIONS,
   SchemaMigrationRunner,
   APPLICATION_MIGRATIONS,
+  applyApplicationMigrations,
   type SchemaMigration,
 } from './schema-migrations.js';
-import { SnapshotStore } from './snapshot-store.js';
+import { SnapshotStore } from './features/market-data/index.js';
 
 test('schema migration runner applies ordered migrations exactly once', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-migrations-'));
@@ -90,6 +92,77 @@ test('application migration adds the directional paper ledger without changing s
       ]
     );
     assert.ok(database.prepare("SELECT name FROM sqlite_master WHERE name = 'pool_snapshots'").get());
+    database.close();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('feature schema ownership upgrades a version 3 database idempotently', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'bnb-feature-schema-'));
+  const databasePath = join(directory, 'test.sqlite');
+  const snapshots = new SnapshotStore(databasePath);
+  const onchain = new OnchainStore(databasePath);
+  snapshots.save(
+    {
+      price: 600,
+      tvl: 1_000_000,
+      volume24h: 100_000,
+      volume6h: 25_000,
+      volume1h: 5_000,
+      volLiqRatio: 0.1,
+      estimatedFees24h: 10,
+      estimatedAPR: 0.365,
+      priceChange1h: 0,
+      priceChange6h: 0,
+      priceChange24h: 0,
+      txns24h: { buys: 10, sells: 8 },
+      wbnbInPool: 1_000,
+      usdtInPool: 600_000,
+      pairAddress: '0xpool',
+    },
+    new Date('2026-01-01T00:00:00.000Z')
+  );
+  snapshots.close();
+  onchain.close();
+
+  try {
+    const version3Migrations = APPLICATION_MIGRATIONS.filter(migration => migration.version <= 3);
+    new SchemaMigrationRunner(databasePath, version3Migrations).migrate();
+
+    assert.deepEqual(
+      applyApplicationMigrations(databasePath).map(migration => migration.version),
+      [1, 2, 3, 4]
+    );
+    assert.deepEqual(
+      applyApplicationMigrations(databasePath).map(migration => migration.version),
+      [1, 2, 3, 4]
+    );
+    assert.equal(new Set(FEATURE_SCHEMA_CONTRIBUTIONS.map(item => item.feature)).size, 6);
+
+    const database = new DatabaseSync(databasePath);
+    const snapshotCount = database.prepare('SELECT COUNT(*) AS count FROM pool_snapshots').get() as {
+      count: number;
+    };
+    const quickCheck = database.prepare('PRAGMA quick_check').get() as { quick_check: string };
+    const requiredIndexes = [
+      'idx_exit_proposals_one_active_per_position',
+      'idx_position_actions_hourly_idempotency',
+      'idx_position_evaluations_hourly_idempotency',
+    ];
+    const indexes = database
+      .prepare(
+        `SELECT name FROM sqlite_master
+         WHERE type = 'index' AND name IN (?, ?, ?)
+         ORDER BY name`
+      )
+      .all(...requiredIndexes) as Array<{ name: string }>;
+    assert.equal(snapshotCount.count, 1);
+    assert.deepEqual(
+      indexes.map(index => index.name),
+      [...requiredIndexes].sort()
+    );
+    assert.equal(quickCheck.quick_check, 'ok');
     database.close();
   } finally {
     rmSync(directory, { recursive: true, force: true });

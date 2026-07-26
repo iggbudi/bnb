@@ -1,5 +1,5 @@
-import { AggressivePaperStore } from '../../../aggressive-paper-store.js';
-import { SnapshotStore } from '../../../snapshot-store.js';
+import { AggressivePaperStore } from '../infrastructure/aggressive-paper-store.js';
+import { SnapshotStore } from '../../market-data/index.js';
 import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
 import { estimateLifecycleGas } from '../../lp-execution/index.js';
 import {

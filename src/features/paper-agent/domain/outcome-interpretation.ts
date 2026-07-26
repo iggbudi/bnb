@@ -1,4 +1,7 @@
-import type { PaperAgentOutcomeDetail, PaperAgentOutcomeInterpretationInput } from '../../../agent-store.js';
+import type {
+  PaperAgentOutcomeDetail,
+  PaperAgentOutcomeInterpretationInput,
+} from '../infrastructure/agent-store.js';
 import type { OutcomeGasContext } from './outcome-assessment.js';
 import { MINIMUM_ACTIONABLE_EDGE_USD } from './outcome-assessment.js';
 

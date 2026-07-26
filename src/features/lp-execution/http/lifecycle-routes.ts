@@ -1,11 +1,11 @@
 import type { Express } from 'express';
 
-import type { ExecutionStore } from '../../../execution-store.js';
-import type { LifecycleActivationStore } from '../../../lifecycle-activation-store.js';
+import type { ExecutionStore } from '../infrastructure/execution-store.js';
+import type { LifecycleActivationStore } from '../../learning/index.js';
 import { PANCAKE_V3_POSITION_MANAGER } from '../infrastructure/pancakeswap-v3-execution.js';
 import { PANCAKE_V3_SWAP_ROUTER } from '../infrastructure/pancakeswap-v3-exit.js';
-import type { PositionStore } from '../../../position-store.js';
-import type { ShadowModeStore } from '../../../shadow-mode-store.js';
+import type { PositionStore } from '../infrastructure/position-store.js';
+import type { ShadowModeStore } from '../infrastructure/shadow-mode-store.js';
 import { parsePositiveNumber } from '../../../validation.js';
 
 export interface LifecycleRuntimeView {

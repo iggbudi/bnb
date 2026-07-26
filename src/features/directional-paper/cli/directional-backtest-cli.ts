@@ -2,8 +2,8 @@ import 'dotenv/config';
 
 import { runDirectionalBacktest } from '../application/directional-paper-manager.js';
 import { DEFAULT_DIRECTIONAL_CONFIG } from '../domain/directional-strategy.js';
-import { DirectionalPaperStore } from '../../../directional-paper-store.js';
-import { SnapshotStore } from '../../../snapshot-store.js';
+import { DirectionalPaperStore } from '../infrastructure/directional-paper-store.js';
+import { SnapshotStore } from '../../market-data/index.js';
 
 function argument(args: readonly string[], name: string, fallback: number): number {
   const index = args.indexOf(`--${name}`);

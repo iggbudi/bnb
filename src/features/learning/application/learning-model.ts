@@ -1,4 +1,4 @@
-import type { PaperAgentDecisionInput } from '../../../agent-store.js';
+import type { PaperAgentDecisionInput } from '../../paper-agent/index.js';
 
 export const LEARNING_FEATURE_NAMES = [
   'estimatedAPR',

@@ -1,9 +1,9 @@
 import type { Express, RequestHandler } from 'express';
 
-import type { OnchainStore } from '../../../onchain-store.js';
+import type { OnchainStore } from '../infrastructure/onchain-store.js';
 import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
 import { safeErrorMessage } from '../../../shared/http/errors.js';
-import type { SnapshotStore } from '../../../snapshot-store.js';
+import type { SnapshotStore } from '../infrastructure/snapshot-store.js';
 import { UpstreamError } from '../../../shared/runtime/upstream-resilience.js';
 import { parsePositiveNumber } from '../../../validation.js';
 

@@ -1,6 +1,6 @@
-import type { AgentStore } from '../../../agent-store.js';
-import type { OnchainStore } from '../../../onchain-store.js';
-import type { SnapshotStore } from '../../../snapshot-store.js';
+import type { AgentStore } from '../../paper-agent/index.js';
+import type { OnchainStore } from '../../market-data/index.js';
+import type { SnapshotStore } from '../../market-data/index.js';
 import type { AsyncLock } from '../../../shared/runtime/operational-controls.js';
 import type { SingleFlight } from '../../../shared/runtime/upstream-resilience.js';
 import type { LearningService } from '../../learning/index.js';

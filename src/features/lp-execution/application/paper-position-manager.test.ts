@@ -4,11 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { AgentStore, type PaperAgentDecisionInput } from '../../../agent-store.js';
+import { AgentStore, type PaperAgentDecisionInput } from '../../paper-agent/index.js';
 import type { PancakeV3OnchainState } from '../infrastructure/pancakeswap-v3-onchain.js';
 import { processPaperPositionLifecycle } from './paper-position-manager.js';
-import { PositionStore } from '../../../position-store.js';
-import { SnapshotStore, type PoolSnapshotInput } from '../../../snapshot-store.js';
+import { PositionStore } from '../infrastructure/position-store.js';
+import { SnapshotStore, type PoolSnapshotInput } from '../../market-data/index.js';
 
 const signalInput: PaperAgentDecisionInput = {
   decisionHour: '2026-07-01T00:00:00.000Z',

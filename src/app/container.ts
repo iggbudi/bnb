@@ -1,13 +1,13 @@
-import { AgentStore } from '../agent-store.js';
-import { AggressivePaperStore } from '../aggressive-paper-store.js';
-import { DirectionalPaperStore } from '../directional-paper-store.js';
-import { ExecutionStore } from '../execution-store.js';
-import { LifecycleActivationStore } from '../lifecycle-activation-store.js';
-import { OnchainStore } from '../onchain-store.js';
-import { PositionStore } from '../position-store.js';
-import { applyApplicationMigrations } from '../schema-migrations.js';
-import { ShadowModeStore } from '../shadow-mode-store.js';
-import { SnapshotStore } from '../snapshot-store.js';
+import { AgentStore } from '../features/paper-agent/index.js';
+import { AggressivePaperStore } from '../features/aggressive-paper/index.js';
+import { DirectionalPaperStore } from '../features/directional-paper/index.js';
+import { ExecutionStore } from '../features/lp-execution/index.js';
+import { LifecycleActivationStore } from '../features/learning/index.js';
+import { OnchainStore } from '../features/market-data/index.js';
+import { PositionStore } from '../features/lp-execution/index.js';
+import { applyApplicationMigrations } from './migrations.js';
+import { ShadowModeStore } from '../features/lp-execution/index.js';
+import { SnapshotStore } from '../features/market-data/index.js';
 
 export class BnbServiceContainer {
   readonly snapshotStore = new SnapshotStore();

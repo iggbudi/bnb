@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 
-import type { AgentStore } from '../../../agent-store.js';
-import type { ExecutionStore } from '../../../execution-store.js';
+import type { AgentStore } from '../../paper-agent/index.js';
+import type { ExecutionStore } from '../infrastructure/execution-store.js';
 import {
   buildFullRangeMintPlan,
   fetchWalletTokenState,
@@ -19,7 +19,7 @@ import {
   verifyMintAgainstImmutablePlan,
 } from '../infrastructure/pancakeswap-v3-position-tracker.js';
 import type { PancakeV3OnchainState } from '../infrastructure/pancakeswap-v3-onchain.js';
-import type { PositionStore } from '../../../position-store.js';
+import type { PositionStore } from '../infrastructure/position-store.js';
 import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../validation.js';
 
 export interface ExecutionStatusView {

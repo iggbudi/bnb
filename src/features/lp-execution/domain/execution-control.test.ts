@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { AgentModelRecord, PaperAgentDecision, PaperAgentPerformance } from '../../../agent-store.js';
+import type { AgentModelRecord, PaperAgentDecision, PaperAgentPerformance } from '../../paper-agent/index.js';
 import { evaluateExecutionReadiness } from './execution-control.js';
 
 const now = new Date('2026-07-18T10:30:00.000Z');

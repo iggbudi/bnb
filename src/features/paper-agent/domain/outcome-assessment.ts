@@ -1,4 +1,7 @@
-import type { PaperAgentOutcomeAssessmentInput, PaperAgentOutcomeDetail } from '../../../agent-store.js';
+import type {
+  PaperAgentOutcomeAssessmentInput,
+  PaperAgentOutcomeDetail,
+} from '../infrastructure/agent-store.js';
 
 export const OUTCOME_ASSESSMENT_VERSION = 'economic-v1.0';
 export const ECONOMIC_SLIPPAGE_BPS_PER_LEG = 5;

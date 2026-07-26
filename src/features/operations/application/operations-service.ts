@@ -1,7 +1,7 @@
-import type { AgentStore } from '../../../agent-store.js';
-import type { DirectionalPaperStore } from '../../../directional-paper-store.js';
-import type { OnchainStore } from '../../../onchain-store.js';
-import type { SnapshotStore } from '../../../snapshot-store.js';
+import type { AgentStore } from '../../paper-agent/index.js';
+import type { DirectionalPaperStore } from '../../directional-paper/index.js';
+import type { OnchainStore } from '../../market-data/index.js';
+import type { SnapshotStore } from '../../market-data/index.js';
 import { safeErrorMessage } from '../../../shared/http/errors.js';
 import type {
   AsyncLock,

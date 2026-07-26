@@ -1,4 +1,4 @@
-import type { AgentModelRecord, PaperAgentDecision, PaperAgentPerformance } from '../../../agent-store.js';
+import type { AgentModelRecord, PaperAgentDecision, PaperAgentPerformance } from '../../paper-agent/index.js';
 
 export interface ExecutionLimits {
   maxCapitalUsd: number;

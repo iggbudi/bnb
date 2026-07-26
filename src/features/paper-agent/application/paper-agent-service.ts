@@ -1,8 +1,8 @@
-import type { AgentStore, PaperAgentDecision } from '../../../agent-store.js';
-import type { OnchainPoolSnapshot, OnchainStore } from '../../../onchain-store.js';
-import type { PositionStore } from '../../../position-store.js';
-import type { ShadowModeStore } from '../../../shadow-mode-store.js';
-import type { SnapshotStore } from '../../../snapshot-store.js';
+import type { AgentStore, PaperAgentDecision } from '../infrastructure/agent-store.js';
+import type { OnchainPoolSnapshot, OnchainStore } from '../../market-data/index.js';
+import type { PositionStore } from '../../lp-execution/index.js';
+import type { ShadowModeStore } from '../../lp-execution/index.js';
+import type { SnapshotStore } from '../../market-data/index.js';
 import type { AsyncLock } from '../../../shared/runtime/operational-controls.js';
 import type { AggressivePaperService } from '../../aggressive-paper/index.js';
 import type { LearningService } from '../../learning/index.js';

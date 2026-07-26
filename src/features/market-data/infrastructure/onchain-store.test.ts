@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { OnchainStore } from './onchain-store.js';
-import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
+import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
 
 const state = {
   blockNumber: 123,

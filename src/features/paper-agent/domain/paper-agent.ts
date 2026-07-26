@@ -1,7 +1,7 @@
 import { calculateIL } from '../../lp-analysis/index.js';
 import { FULL_RANGE_FEE_ACCOUNTING_VERSION } from '../../lp-analysis/index.js';
-import type { PaperAgentDecisionInput } from '../../../agent-store.js';
-import type { HistoricalPeriodStats } from '../../../snapshot-store.js';
+import type { PaperAgentDecisionInput } from '../infrastructure/agent-store.js';
+import type { HistoricalPeriodStats } from '../../market-data/index.js';
 
 export const PAPER_AGENT_STRATEGY_VERSION = 'lifecycle-v2.1';
 export const PAPER_AGENT_INVESTMENT = 100;
