@@ -15,9 +15,10 @@ Terakhir diperbarui: 2026-07-26 UTC.
 - [x] Fase 2 — route seluruh 8 slice selesai diekstrak ke `src/features/`.
 - [x] Fase 3 — domain logic, application service/use case, CLI directional, adapter execution, dan test terkait telah dipindahkan ke slice pemiliknya; orchestration runtime telah dibungkus service ber-Dependency Injection.
 - [x] Fase 4 — persistence, connection factory, schema ownership contribution, dan migration registry selesai dipisahkan.
-- [ ] Fase 5–7 — belum dimulai; berikutnya scheduler task contribution.
+- [x] Fase 5 — scheduler task contribution dan metadata readiness selesai dipisahkan.
+- [ ] Fase 6–7 — belum dimulai; berikutnya modularisasi frontend.
 
-Catatan transisi: seluruh route bisnis, domain logic, application orchestration, dan persistence sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan runtime hooks. Runner serta connection policy SQLite berada di `shared/database`, sedangkan registry migration berada di `app/migrations.ts`. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
+Catatan transisi: seluruh route bisnis, domain logic, application orchestration, persistence, dan definisi scheduler sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan task contribution. `src/app/register-schedulers.ts` hanya meregistrasi timer dan menjalankan definisi task, sedangkan metadata critical readiness berasal dari definisi yang sama. Runner serta connection policy SQLite berada di `shared/database`, sedangkan registry migration berada di `app/migrations.ts`. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
 
 ## 2. Prinsip dan Batasan
 
@@ -50,7 +51,7 @@ Kandidat file saat ini:
 - `snapshot-store.ts` dan test
 - `onchain-store.ts` dan test
 - Market, history, statistics, dan on-chain route sudah berada di `src/features/market-data/`
-- Capture orchestration berada di `src/features/market-data/application/market-data-service.ts`; runtime hanya mengekspos task hook sampai Fase 5
+- Capture orchestration berada di `src/features/market-data/application/market-data-service.ts`; definisi task dimiliki slice dan dikumpulkan composition root
 
 Public API slice:
 
@@ -76,12 +77,14 @@ Kandidat file saat ini:
 - `openai-analysis.ts` dan test
 - Simulation, AI analysis, dan impermanent-loss route sudah berada di `src/features/lp-analysis/`
 - Projection, simulation, dan AI cache orchestration berada di `src/features/lp-analysis/application/lp-analysis-service.ts`
+- Slice mengekspor task contribution kosong karena belum memiliki worker periodik mandiri
 
 Public API slice:
 
 - Fungsi kalkulasi/domain yang digunakan slice agent dan execution
 - `LpAnalysisService`
 - `registerLpAnalysisRoutes()`
+- `createLpAnalysisTasks()`
 
 ### 3.3 `paper-agent`
 
@@ -101,7 +104,7 @@ Kandidat file saat ini:
 - `outcome-interpretation.ts` dan test
 - `agent-reflection.ts` dan test
 - Status, decisions, outcomes, performance, dan reflection route sudah berada di `src/features/paper-agent/`
-- Decision, outcome evaluation, dan reflection orchestration berada di `src/features/paper-agent/application/paper-agent-service.ts`; runtime hanya mengekspos task hook sampai Fase 5
+- Decision, outcome evaluation, dan reflection orchestration berada di `src/features/paper-agent/application/paper-agent-service.ts`; definisi ketiga task dimiliki slice
 
 Public API slice:
 
@@ -126,7 +129,8 @@ Kandidat file saat ini:
 - `aggressive-paper-store.ts`
 - `aggressive-paper-dashboard.test.ts`
 - Route dan test HTTP sudah berada di `src/features/aggressive-paper/`
-- Lifecycle orchestration berada di application service slice; runtime hanya mengekspos task hook sampai Fase 5 dan dashboard masih di `public/dashboard.js`
+- Lifecycle orchestration dipicu oleh task paper-agent; slice mengekspor contribution kosong karena tidak memiliki timer mandiri
+- Dashboard masih di `public/dashboard.js`
 
 Public API slice:
 
@@ -151,7 +155,7 @@ Kandidat file saat ini:
 - `directional-paper-dashboard.test.ts`
 - `directional-backtest-cli.ts`
 - Route dan test HTTP sudah berada di `src/features/directional-paper/`
-- Lifecycle orchestration berada di application service slice; runtime hanya mengekspos task hook sampai Fase 5 dan dashboard masih di `public/dashboard.js`
+- Lifecycle orchestration dan task contribution berada di application service slice; dashboard masih di `public/dashboard.js`
 
 Public API slice:
 
@@ -535,16 +539,16 @@ Kriteria selesai:
 
 ### Fase 5 — Ubah Scheduler Menjadi Task Contribution
 
-- [ ] Setiap slice mengekspor daftar `ScheduledTaskDefinition`.
-- [ ] `app/register-schedulers.ts` hanya mengumpulkan dan menjalankan definisi tersebut.
-- [ ] Pertahankan nama task, interval, overlap protection, logging, dan `runOnStartup` persis seperti baseline.
-- [ ] Readiness scheduler menggunakan metadata task yang sama agar daftar tidak diduplikasi.
-- [ ] Tambahkan test bahwa semua task wajib terdaftar satu kali.
+- [x] Setiap slice mengekspor daftar `ScheduledTaskDefinition`.
+- [x] `app/register-schedulers.ts` hanya mengumpulkan dan menjalankan definisi tersebut.
+- [x] Pertahankan nama task, interval, overlap protection, logging, dan `runOnStartup` persis seperti baseline.
+- [x] Readiness scheduler menggunakan metadata task yang sama agar daftar tidak diduplikasi.
+- [x] Tambahkan test bahwa semua task wajib terdaftar satu kali.
 
 Kriteria selesai:
 
-- Menambah worker fitur baru tidak membutuhkan modifikasi business logic di composition root.
-- Scheduler registry tetap menjadi concern aplikasi/operasional.
+- [x] Menambah worker fitur baru tidak membutuhkan modifikasi business logic di composition root.
+- [x] Scheduler registry tetap menjadi concern aplikasi/operasional.
 
 ### Fase 6 — Modularisasi Frontend
 

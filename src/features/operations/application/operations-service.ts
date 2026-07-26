@@ -81,16 +81,15 @@ export class OperationsService {
         status.startedAt &&
         now - new Date(status.startedAt).getTime() > 30 * 60_000
     );
+    const readinessCriticalTasks = new Set(
+      this.dependencies.schedulerRegistry
+        .listTaskMetadata()
+        .filter(task => task.readinessCritical)
+        .map(task => task.name)
+    );
     const failedCritical = schedulers.filter(
       status =>
-        [
-          'market-snapshot',
-          'onchain-snapshot',
-          'paper-lifecycle',
-          'directional-paper',
-          'paper-outcome',
-          'storage-maintenance',
-        ].includes(status.name) &&
+        readinessCriticalTasks.has(status.name) &&
         status.lastErrorAt &&
         (!status.lastSuccessAt || status.lastErrorAt > status.lastSuccessAt)
     );

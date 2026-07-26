@@ -1,3 +1,5 @@
+import type { ScheduledTaskDefinition, ScheduledTaskMetadata } from './scheduled-task.js';
+
 export interface SchedulerStatus {
   name: string;
   state: 'IDLE' | 'RUNNING';
@@ -11,7 +13,34 @@ export interface SchedulerStatus {
 
 export class SchedulerRegistry {
   private readonly statuses = new Map<string, SchedulerStatus>();
+  private readonly taskMetadata = new Map<string, ScheduledTaskMetadata>();
   private readonly active = new Set<Promise<unknown>>();
+
+  registerTasks(tasks: readonly ScheduledTaskDefinition[]): void {
+    const names = new Set<string>();
+    for (const task of tasks) {
+      if (names.has(task.name) || this.taskMetadata.has(task.name)) {
+        throw new Error(`Scheduled task "${task.name}" is already registered`);
+      }
+      if (
+        !task.name ||
+        !task.label ||
+        !Number.isFinite(task.intervalMs) ||
+        task.intervalMs <= 0 ||
+        !Number.isFinite(task.registrationOrder)
+      ) {
+        throw new Error(`Scheduled task "${task.name}" has invalid metadata`);
+      }
+      names.add(task.name);
+    }
+    for (const { run: _run, ...metadata } of tasks) {
+      this.taskMetadata.set(metadata.name, { ...metadata });
+    }
+  }
+
+  listTaskMetadata(): ScheduledTaskMetadata[] {
+    return [...this.taskMetadata.values()].map(metadata => ({ ...metadata }));
+  }
 
   private statusFor(name: string): SchedulerStatus {
     let status = this.statuses.get(name);

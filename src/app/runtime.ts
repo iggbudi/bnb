@@ -80,6 +80,7 @@ import { SingleFlight } from '../shared/runtime/upstream-resilience.js';
 import { loadBnbAppConfig } from './config.js';
 import { BnbServiceContainer } from './container.js';
 import { createBnbHttpApp } from './create-app.js';
+import { createBnbScheduledTasks } from './scheduled-tasks.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -139,8 +140,6 @@ const executionService = new ExecutionService({
   mintReceiptMinimumConfirmations: MINT_RECEIPT_MIN_CONFIRMATIONS,
 });
 const buildCurrentHighRiskPlan = aggressivePaperService.buildCurrentPlan.bind(aggressivePaperService);
-const runDirectionalPaperCycle = directionalPaperService.runCycle.bind(directionalPaperService);
-const runLearningCycle = learningService.runCycle.bind(learningService);
 const getLearningStatus = learningService.getStatus.bind(learningService);
 let shuttingDown = false;
 
@@ -161,9 +160,6 @@ const paperAgentService = new PaperAgentService({
   positionLifecycleEnabled: POSITION_LIFECYCLE_ENABLED,
   reconcileLifecycleActivation: now => executionService.reconcileLifecycleActivation(now),
 });
-const runHourlyPaperAgent = paperAgentService.runHourly.bind(paperAgentService);
-const evaluateDuePaperDecisions = paperAgentService.evaluateDueDecisions.bind(paperAgentService);
-const runReflectionCycle = paperAgentService.runReflectionCycle.bind(paperAgentService);
 const getReflectionStatus = paperAgentService.getReflectionStatus.bind(paperAgentService);
 const lpAnalysisService = new LpAnalysisService({
   agentStore,
@@ -189,6 +185,14 @@ const operationsService = new OperationsService({
   getAppliedMigrations: () => services.appliedMigrations,
   getActiveHttpRequests: http.getActiveHttpRequests,
   isShuttingDown: () => shuttingDown,
+});
+const scheduledTasks = createBnbScheduledTasks({
+  marketData: marketDataService,
+  paperAgent: paperAgentService,
+  directionalPaper: directionalPaperService,
+  learning: learningService,
+  lpExecution: executionService,
+  operations: operationsService,
 });
 
 function rpcHeavyLimit(req: Request, res: Response, next: NextFunction): void {
@@ -385,17 +389,7 @@ export const bnbRuntime = {
   host: config.host,
   shutdownTimeoutMs: config.shutdownTimeoutMs,
   schedulerRegistry,
-  tasks: {
-    capturePoolSnapshot,
-    captureOnchainPoolState,
-    refreshExecutionAdapterVerification: () => executionService.refreshAdapterVerification(),
-    runHourlyPaperAgent,
-    runDirectionalPaperCycle,
-    evaluateDuePaperDecisions,
-    runLearningCycle,
-    runReflectionCycle,
-    runStorageMaintenance: () => operationsService.runStorageMaintenance(),
-  },
+  scheduledTasks,
   setShuttingDown(value: boolean) {
     shuttingDown = value;
   },

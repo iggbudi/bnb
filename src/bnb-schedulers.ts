@@ -3,4 +3,4 @@ export {
   registerBnbSchedulers,
   registerBnbSchedulers as startBnbSchedulers,
 } from './app/register-schedulers.js';
-export type { BnbSchedulerController } from './app/register-schedulers.js';
+export type { BnbSchedulerController, BnbSchedulerRuntime } from './app/register-schedulers.js';

@@ -22,6 +22,7 @@ export * from './domain/execution-control.js';
 export * from './domain/position-lifecycle.js';
 export * from './application/paper-position-manager.js';
 export * from './application/execution-service.js';
+export * from './application/scheduled-tasks.js';
 export * from './infrastructure/pancakeswap-v3-execution.js';
 export * from './infrastructure/pancakeswap-v3-exit.js';
 export * from './infrastructure/pancakeswap-v3-exit-tracker.js';
