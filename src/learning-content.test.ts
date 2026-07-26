@@ -4,8 +4,8 @@ import test from 'node:test';
 
 test('Belajar gives beginners a direct profit-oriented LP workflow', () => {
   const html = readFileSync('public/index.html', 'utf8');
-  const dashboard = readFileSync('public/dashboard.js', 'utf8');
-  const frontend = `${html}\n${dashboard}`;
+  const learning = readFileSync('public/features/learning.js', 'utf8');
+  const frontend = `${html}\n${learning}`;
 
   assert.match(html, /Mulai di Sini: Dari Mana Profit LP/);
   assert.match(html, /Keunggulan LP terhadap HOLD = fee − IL − gas/);
@@ -37,4 +37,5 @@ test('Belajar gives beginners a direct profit-oriented LP workflow', () => {
   assert.match(html, /id="learnHistoryCoverage"/);
   assert.match(frontend, /async function loadLearningLifecycleStatus/);
   assert.match(frontend, /fetchApi\('\/api\/agent\/aggressive-performance'\)/);
+  assert.match(html, /src="\/features\/learning\.js"/);
 });

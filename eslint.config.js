@@ -37,12 +37,14 @@ export default tseslint.config(
       globals: {
         BigInt: 'readonly',
         URLSearchParams: 'readonly',
+        clearInterval: 'readonly',
         clearTimeout: 'readonly',
         console: 'readonly',
         document: 'readonly',
         fetch: 'readonly',
         setInterval: 'readonly',
         setTimeout: 'readonly',
+        window: 'readonly',
       },
     },
     rules: {

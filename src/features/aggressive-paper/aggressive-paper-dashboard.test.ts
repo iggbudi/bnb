@@ -4,13 +4,15 @@ import test from 'node:test';
 
 test('agent dashboard separates actual aggressive portfolio from overlapping full-range signals', () => {
   const html = readFileSync('public/index.html', 'utf8');
-  const dashboard = readFileSync('public/dashboard.js', 'utf8');
+  const aggressive = readFileSync('public/features/aggressive-paper.js', 'utf8');
+  const agent = readFileSync('public/features/paper-agent.js', 'utf8');
+  const learning = readFileSync('public/features/learning.js', 'utf8');
   const routes = readFileSync('src/features/aggressive-paper/http/routes.ts', 'utf8');
   const service = readFileSync(
     'src/features/aggressive-paper/application/aggressive-paper-service.ts',
     'utf8'
   );
-  const frontend = `${html}\n${dashboard}`;
+  const frontend = `${html}\n${aggressive}\n${agent}\n${learning}`;
 
   assert.match(routes, /\/api\/agent\/aggressive-performance/);
   assert.match(routes, /\/api\/agent\/aggressive-positions\/:id/);
@@ -21,8 +23,8 @@ test('agent dashboard separates actual aggressive portfolio from overlapping ful
   assert.match(frontend, /P&amp;L Sinyal Overlap · Bukan Portfolio/);
   assert.match(frontend, /Diagnostik Sinyal Full-Range/);
   assert.match(frontend, /ONCHAIN_FEE_GROWTH_GLOBAL_X128_WITH_IN_RANGE_OCCUPANCY|feeGrowthGlobal on-chain/);
-  assert.match(html, /src="\/api-client\.js"/);
-  assert.match(html, /src="\/dashboard\.js"/);
-  assert.doesNotThrow(() => new Function(readFileSync('public/api-client.js', 'utf8')));
-  assert.doesNotThrow(() => new Function(dashboard));
+  assert.match(html, /src="\/features\/aggressive-paper\.js"/);
+  assert.match(html, /src="\/features\/paper-agent\.js"/);
+  assert.doesNotThrow(() => new Function(aggressive));
+  assert.doesNotThrow(() => new Function(agent));
 });

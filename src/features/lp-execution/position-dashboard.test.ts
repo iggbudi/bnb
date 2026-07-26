@@ -4,10 +4,12 @@ import test from 'node:test';
 
 test('position lifecycle dashboard is wired to read-only position APIs', () => {
   const html = readFileSync('public/index.html', 'utf8');
-  const dashboard = readFileSync('public/dashboard.js', 'utf8');
-  const frontend = `${html}\n${dashboard}`;
+  const dashboard = readFileSync('public/features/execution.js', 'utf8');
+  const app = readFileSync('public/app.js', 'utf8');
+  const frontend = `${html}\n${dashboard}\n${app}`;
   assert.match(html, /data-tab="position"/);
   assert.match(html, /id="positionDashboard"/);
+  assert.match(html, /src="\/features\/execution\.js"/);
   assert.match(frontend, /async function loadPositionDashboard/);
   assert.match(frontend, /fetchApi\('\/api\/positions\/status'\)/);
   assert.match(frontend, /fetchApi\(`\/api\/positions\/\$\{selected\.id\}`\)/);
@@ -21,5 +23,6 @@ test('position lifecycle dashboard is wired to read-only position APIs', () => {
   assert.match(frontend, /shadowValidation/);
   assert.match(frontend, /Stage G Paper Activation/);
   assert.match(frontend, /activationEligible/);
+  assert.match(app, /execution\.loadPositionDashboard/);
   assert.doesNotThrow(() => new Function(dashboard));
 });

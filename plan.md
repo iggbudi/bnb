@@ -16,9 +16,10 @@ Terakhir diperbarui: 2026-07-26 UTC.
 - [x] Fase 3 — domain logic, application service/use case, CLI directional, adapter execution, dan test terkait telah dipindahkan ke slice pemiliknya; orchestration runtime telah dibungkus service ber-Dependency Injection.
 - [x] Fase 4 — persistence, connection factory, schema ownership contribution, dan migration registry selesai dipisahkan.
 - [x] Fase 5 — scheduler task contribution dan metadata readiness selesai dipisahkan.
-- [ ] Fase 6–7 — belum dimulai; berikutnya modularisasi frontend.
+- [x] Fase 6 — frontend dimodularisasi per fitur dengan bootstrap tunggal.
+- [ ] Fase 7 — belum dimulai; berikutnya enforcement boundary dan cleanup compatibility layer.
 
-Catatan transisi: seluruh route bisnis, domain logic, application orchestration, persistence, dan definisi scheduler sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan task contribution. `src/app/register-schedulers.ts` hanya meregistrasi timer dan menjalankan definisi task, sedangkan metadata critical readiness berasal dari definisi yang sama. Runner serta connection policy SQLite berada di `shared/database`, sedangkan registry migration berada di `app/migrations.ts`. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
+Catatan transisi: seluruh route bisnis, domain logic, application orchestration, persistence, definisi scheduler, dan renderer/polling dashboard sudah dimiliki feature slice. `src/app/runtime.ts` kini berfokus pada composition/wiring service, route, middleware, dan task contribution. `src/app/register-schedulers.ts` hanya meregistrasi timer dan menjalankan definisi task, sedangkan metadata critical readiness berasal dari definisi yang sama. Frontend memakai helper di `public/shared/`, modul di `public/features/`, serta satu `public/app.js` untuk tab, refresh, dan compatibility handler DOM. Runner serta connection policy SQLite berada di `shared/database`, sedangkan registry migration berada di `app/migrations.ts`. Re-export root serta file `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
 
 ## 2. Prinsip dan Batasan
 
@@ -130,7 +131,7 @@ Kandidat file saat ini:
 - `aggressive-paper-dashboard.test.ts`
 - Route dan test HTTP sudah berada di `src/features/aggressive-paper/`
 - Lifecycle orchestration dipicu oleh task paper-agent; slice mengekspor contribution kosong karena tidak memiliki timer mandiri
-- Dashboard masih di `public/dashboard.js`
+- Renderer portfolio agresif berada di `public/features/aggressive-paper.js`
 
 Public API slice:
 
@@ -155,7 +156,7 @@ Kandidat file saat ini:
 - `directional-paper-dashboard.test.ts`
 - `directional-backtest-cli.ts`
 - Route dan test HTTP sudah berada di `src/features/directional-paper/`
-- Lifecycle orchestration dan task contribution berada di application service slice; dashboard masih di `public/dashboard.js`
+- Lifecycle orchestration dan task contribution berada di application service slice; renderer dashboard berada di `public/features/directional-paper.js`
 
 Public API slice:
 
@@ -552,18 +553,18 @@ Kriteria selesai:
 
 ### Fase 6 — Modularisasi Frontend
 
-- [ ] Pertahankan `index.html` dan kontrak DOM terlebih dahulu.
-- [ ] Ekstrak helper fetch/format/render generik ke `public/shared/`.
-- [ ] Pindahkan render dan polling directional, aggressive, agent, market, dan execution ke modul fitur.
-- [ ] Gunakan satu `public/app.js` sebagai bootstrap tab dan refresh lifecycle.
-- [ ] Hindari state global lintas fitur; gunakan fungsi init/dispose atau object module.
-- [ ] Pertahankan selector DOM, label, dan endpoint selama fase refactor.
-- [ ] Perbarui dashboard tests agar memvalidasi wiring modul.
+- [x] Pertahankan `index.html` dan kontrak DOM terlebih dahulu.
+- [x] Ekstrak helper fetch/format/render generik ke `public/shared/`.
+- [x] Pindahkan render dan polling directional, aggressive, agent, market, dan execution ke modul fitur.
+- [x] Gunakan satu `public/app.js` sebagai bootstrap tab dan refresh lifecycle.
+- [x] Hindari state global lintas fitur; gunakan fungsi init/dispose atau object module.
+- [x] Pertahankan selector DOM, label, dan endpoint selama fase refactor.
+- [x] Perbarui dashboard tests agar memvalidasi wiring modul.
 
 Kriteria selesai:
 
-- Perubahan dashboard satu slice tidak memerlukan editing satu file `dashboard.js` besar.
-- UI dan polling behavior tidak berubah.
+- [x] Perubahan dashboard satu slice tidak memerlukan editing satu file `dashboard.js` besar.
+- [x] UI dan polling behavior tidak berubah.
 
 ### Fase 7 — Enforce Boundary dan Bersihkan Compatibility Layer
 

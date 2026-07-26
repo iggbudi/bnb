@@ -56,8 +56,9 @@ bnb/
 ├── public/
 │   ├── index.html
 │   ├── styles.css
-│   ├── api-client.js
-│   └── dashboard.js
+│   ├── app.js                # Bootstrap tab dan refresh lifecycle
+│   ├── shared/               # API client dan helper format
+│   └── features/             # Renderer/polling per fitur dashboard
 ├── scripts/                   # Background lifecycle untuk Termux
 ├── .github/workflows/ci.yml   # Lint, format, build, test, coverage, audit
 ├── data/                      # Database lokal, git-ignored

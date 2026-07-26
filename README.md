@@ -45,7 +45,7 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 - `src/bnb-app.ts` merakit aplikasi HTTP dan runtime tanpa memulai listener atau timer ketika di-import oleh test.
 - `src/bnb-routes.ts`, `src/bnb-services.ts`, dan `src/bnb-schedulers.ts` memisahkan system routes, lifecycle store/service, dan scheduler.
 - `src/schema-migrations.ts` menjalankan migrasi SQLite berurutan dan idempotent melalui tabel `schema_migrations`; kegagalan satu migrasi di-rollback atomik.
-- Frontend dipisah menjadi `public/index.html`, `public/styles.css`, `public/api-client.js`, dan `public/dashboard.js`.
+- Frontend memakai `public/app.js` sebagai bootstrap tunggal, helper netral di `public/shared/`, dan renderer/polling terlokalisasi di `public/features/`.
 - `npm run check` menjalankan ESLint, Prettier check, TypeScript build, seluruh unit/integration test, dan coverage threshold. Workflow yang sama tersedia di `.github/workflows/ci.yml`.
 
 ## 🎯 Fitur
