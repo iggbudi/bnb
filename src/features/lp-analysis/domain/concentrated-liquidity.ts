@@ -1,4 +1,4 @@
-import { feeGrowthDelta } from '../../lp-execution/index.js';
+import { feeGrowthDelta } from '../../market-data/index.js';
 
 const Q128 = 1n << 128n;
 

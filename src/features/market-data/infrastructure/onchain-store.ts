@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { applicationDatabasePath, openApplicationDatabase } from '../../../shared/database/connection.js';
-import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
+import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
 
 export interface OnchainPoolSnapshot {
   blockNumber: number;

@@ -10,7 +10,7 @@ import {
 } from './aggressive-paper-manager.js';
 import { AggressivePaperStore } from '../infrastructure/aggressive-paper-store.js';
 import { buildHighRiskStrategyPlan, type HighRiskStrategyPlan } from '../domain/high-risk-strategy.js';
-import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import { SnapshotStore, type PoolSnapshotInput } from '../../market-data/index.js';
 
 const Q128 = 1n << 128n;

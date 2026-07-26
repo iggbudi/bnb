@@ -1,5 +1,5 @@
-import { calculateFullRangeTokenAmounts, fullRangeLiquidityForAmounts } from '../../lp-execution/index.js';
-import { feeGrowthDelta } from '../../lp-execution/index.js';
+import { calculateFullRangeTokenAmounts, fullRangeLiquidityForAmounts } from './full-range-liquidity.js';
+import { feeGrowthDelta } from '../../market-data/index.js';
 
 const Q96 = 1n << 96n;
 const Q128 = 1n << 128n;

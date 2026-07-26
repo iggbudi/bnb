@@ -5,7 +5,7 @@ import {
   feeGrowthDelta,
   feeGrowthX128ToTokenPerLiquidity,
   fetchPancakeV3OnchainState,
-} from '../../lp-execution/index.js';
+} from '../infrastructure/pancakeswap-v3-onchain.js';
 import { getPoolByAddress } from '../infrastructure/dexscreener.js';
 
 export const WBNB_USDT_CHAIN_ID = 'bsc';

@@ -1,19 +1,22 @@
-import { calculateIL } from '../../lp-analysis/index.js';
+import {
+  calculateFullRangeTokenAmounts,
+  calculateIL,
+  estimateLifecycleGas,
+} from '../../lp-analysis/index.js';
 import type { PaperAgentDecision } from '../../paper-agent/index.js';
 import {
   FULL_RANGE_FEE_ACCOUNTING_VERSION,
   fullRangeFeeGrowthIncrement,
   fullRangeLiquidityForCapital,
 } from '../../lp-analysis/index.js';
-import { calculateFullRangeTokenAmounts } from '../infrastructure/pancakeswap-v3-execution.js';
-import type { PancakeV3OnchainState } from '../infrastructure/pancakeswap-v3-onchain.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import { positionAgeHours, scheduledPositionReview } from '../domain/position-lifecycle.js';
 import {
-  PositionStore,
+  type PositionStore,
   type PositionEvaluationRecord,
   type PositionRecord,
 } from '../infrastructure/position-store.js';
-import { SnapshotStore } from '../../market-data/index.js';
+import type { SnapshotStore } from '../../market-data/index.js';
 
 const MINIMUM_HOLD_HOURS = 7 * 24;
 const FINAL_REVIEW_HOURS = 14 * 24;
@@ -40,18 +43,6 @@ export interface PaperPositionLifecycleResult {
   position: PositionRecord | null;
   evaluation: PositionEvaluationRecord | null;
   reasonCode: string;
-}
-
-export function estimateLifecycleGas(onchain: PancakeV3OnchainState): {
-  entryGasUsd: number;
-  estimatedExitGasUsd: number;
-} {
-  const approvalGasUnits = 2 * 50_000;
-  const approvalCostBnb = Number(BigInt(onchain.gas.gasPriceWei) * BigInt(approvalGasUnits)) / 1e18;
-  return {
-    entryGasUsd: onchain.gas.estimatedMintCostUsd + approvalCostBnb * onchain.priceWbnbUsd,
-    estimatedExitGasUsd: onchain.gas.estimatedRebalanceCostUsd,
-  };
 }
 
 function feeIncrementSince(

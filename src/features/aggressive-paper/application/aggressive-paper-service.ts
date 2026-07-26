@@ -1,7 +1,7 @@
 import { AggressivePaperStore } from '../infrastructure/aggressive-paper-store.js';
-import { SnapshotStore } from '../../market-data/index.js';
-import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
-import { estimateLifecycleGas } from '../../lp-execution/index.js';
+import type { SnapshotStore } from '../../market-data/index.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
+import { estimateLifecycleGas } from '../../lp-analysis/index.js';
 import {
   AGGRESSIVE_INITIAL_CAPITAL_USD,
   processAggressivePaperLifecycle,

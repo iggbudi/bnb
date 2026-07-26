@@ -1,22 +1,14 @@
-import type { AgentStore, PaperAgentDecision } from '../infrastructure/agent-store.js';
-import type { OnchainPoolSnapshot, OnchainStore } from '../../market-data/index.js';
-import type { PositionStore } from '../../lp-execution/index.js';
-import type { ShadowModeStore } from '../../lp-execution/index.js';
-import type { SnapshotStore } from '../../market-data/index.js';
+import type { PaperAgentDecision } from '../infrastructure/agent-store.js';
+import type { OnchainPoolSnapshot } from '../../market-data/index.js';
 import type { AsyncLock } from '../../../shared/runtime/operational-controls.js';
-import type { AggressivePaperService } from '../../aggressive-paper/index.js';
-import type { LearningService } from '../../learning/index.js';
-import type { MarketDataService, WbnbUsdtAnalysis } from '../../market-data/index.js';
+import type { WbnbUsdtAnalysis } from '../../market-data/index.js';
 import {
   estimateFullRangeFeeBetweenCheckpoints,
   FULL_RANGE_FEE_ACCOUNTING_VERSION,
   projectFullRangeFee24h,
 } from '../../lp-analysis/index.js';
-import {
-  estimateLifecycleGas,
-  processPaperPositionLifecycle,
-  type PancakeV3OnchainState,
-} from '../../lp-execution/index.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
+import { estimateLifecycleGas } from '../../lp-analysis/index.js';
 import { applyLearningModel } from '../../learning/index.js';
 import {
   ENTRY_FEE_RETENTION_FACTOR,
@@ -44,19 +36,34 @@ import {
   PAPER_AGENT_HORIZONS,
 } from './paper-agent-evaluator.js';
 import { REFLECTION_PROMPT_VERSION, reflectOnPaperOutcome } from './agent-reflection.js';
+import type {
+  ActiveModelReader,
+  AggressivePaperLifecyclePort,
+  CurrentPoolStateReader,
+  MarketCapturePort,
+  MarketHistoryReader,
+  PaperAgentRepository,
+  PositionLifecyclePort,
+  ShadowValidationWriter,
+} from './ports.js';
 
 export interface PaperAgentServiceDependencies {
-  agentStore: AgentStore;
-  onchainStore: OnchainStore;
-  positionStore: PositionStore;
-  shadowModeStore: ShadowModeStore;
-  snapshotStore: SnapshotStore;
-  marketDataService: MarketDataService;
-  aggressivePaperService: AggressivePaperService;
-  learningService: LearningService;
+  agentStore: PaperAgentRepository;
+  onchainStore: CurrentPoolStateReader;
+  shadowModeStore: ShadowValidationWriter;
+  snapshotStore: MarketHistoryReader;
+  marketDataService: MarketCapturePort;
+  aggressivePaperService: AggressivePaperLifecyclePort;
+  learningService: ActiveModelReader;
   openAiLock: AsyncLock;
   openAiConfigured: boolean;
   positionLifecycleEnabled: boolean;
+  runPaperPositionLifecycle(
+    signal: PaperAgentDecision,
+    market: WbnbUsdtAnalysis,
+    onchain: PancakeV3OnchainState | null,
+    now: Date
+  ): ReturnType<PositionLifecyclePort['run']>;
   reconcileLifecycleActivation(now: Date): unknown;
   log?: (message: string) => void;
 }
@@ -76,14 +83,7 @@ export class PaperAgentService {
     now: Date
   ) {
     try {
-      const result = processPaperPositionLifecycle({
-        signal,
-        market: { price: market.price, tvl: market.tvl, volume1h: market.volume1h },
-        onchain,
-        positionStore: this.dependencies.positionStore,
-        snapshotStore: this.dependencies.snapshotStore,
-        now,
-      });
+      const result = this.dependencies.runPaperPositionLifecycle(signal, market, onchain, now);
       this.dependencies.shadowModeStore.recordSuccess(signal, result, now);
       return result;
     } catch (error) {

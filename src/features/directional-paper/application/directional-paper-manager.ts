@@ -17,7 +17,7 @@ import {
   type DirectionalSignal,
   type DirectionalStrategyConfig,
 } from '../domain/directional-strategy.js';
-import { SnapshotStore, type PoolSnapshot } from '../../market-data/index.js';
+import type { PoolSnapshot, SnapshotStore } from '../../market-data/index.js';
 
 export interface DirectionalLifecycleResult {
   processed: boolean;

@@ -1,34 +1,27 @@
-import type { AgentStore } from '../../paper-agent/index.js';
-import type { OnchainStore } from '../../market-data/index.js';
-import type { SnapshotStore } from '../../market-data/index.js';
 import type { AsyncLock } from '../../../shared/runtime/operational-controls.js';
 import type { SingleFlight } from '../../../shared/runtime/upstream-resilience.js';
-import type { LearningService } from '../../learning/index.js';
-import {
-  WBNB_USDT_CHAIN_ID,
-  WBNB_USDT_FEE_RATE,
-  type MarketDataService,
-  type WbnbUsdtAnalysis,
-} from '../../market-data/index.js';
-import { estimateLifecycleGas, type PancakeV3OnchainState } from '../../lp-execution/index.js';
+import { WBNB_USDT_CHAIN_ID, WBNB_USDT_FEE_RATE, type WbnbUsdtAnalysis } from '../../market-data/index.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
+import { estimateLifecycleGas } from '../domain/lifecycle-cost.js';
 import { calculateIL, calculateLPInvestmentProjection } from '../domain/amm.js';
 import { projectFullRangeFee24h } from '../domain/full-range-fee.js';
 import { simulateFullRangeLP } from '../domain/lp-simulator.js';
 import { analyzeLPWithOpenAI, type AILPAnalysis, type LPAnalysisMetrics } from './openai-analysis.js';
+import type {
+  ActiveModelReader,
+  CurrentPoolStateReader,
+  ExecutionStatusReader,
+  MarketAnalysisReader,
+  MarketHistoryReader,
+  PaperAnalysisReader,
+} from './ports.js';
 
-interface ExecutionStatusReaderResult {
-  ready: boolean;
-  mode: 'LOCKED' | 'MANUAL_APPROVAL';
-  blockers: readonly string[];
-}
-
-export interface LpAnalysisServiceDependencies {
-  agentStore: AgentStore;
-  snapshotStore: SnapshotStore;
-  onchainStore: OnchainStore;
-  marketDataService: MarketDataService;
-  learningService: LearningService;
-  getExecutionStatus(): ExecutionStatusReaderResult;
+export interface LpAnalysisServiceDependencies extends ExecutionStatusReader {
+  agentStore: PaperAnalysisReader;
+  snapshotStore: MarketHistoryReader;
+  onchainStore: CurrentPoolStateReader;
+  marketDataService: MarketAnalysisReader;
+  learningService: ActiveModelReader;
   openAiLock: AsyncLock;
   aiSingleFlight: SingleFlight;
 }

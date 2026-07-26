@@ -1,7 +1,7 @@
 import type { Express, RequestHandler } from 'express';
 
 import type { OnchainStore } from '../infrastructure/onchain-store.js';
-import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
+import type { PancakeV3OnchainState } from '../infrastructure/pancakeswap-v3-onchain.js';
 import { safeErrorMessage } from '../../../shared/http/errors.js';
 import type { SnapshotStore } from '../infrastructure/snapshot-store.js';
 import { UpstreamError } from '../../../shared/runtime/upstream-resilience.js';

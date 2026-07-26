@@ -749,13 +749,13 @@ Coverage agregat sudah kuat, tetapi audit menunjukkan:
 
 Pekerjaan:
 
-- [ ] Tambahkan integration test authenticated untuk kill switch, proposal entry, review, immutable transaction plan, dan mint receipt.
-- [ ] Tambahkan integration test authenticated untuk exit proposal, review, immutable exit plan, ordered receipts, settlement, dan realized-loss update.
-- [ ] Uji payload malformed, token salah, proposal expired, replay/idempotency, state transition ilegal, wallet mismatch, chain mismatch, calldata mismatch, deadline, receipt gagal, dan konfirmasi kurang.
-- [ ] Uji kegagalan/timeout RPC pada setiap tahap dan pastikan adapter serta execution readiness selalu fail-closed.
-- [ ] Gunakan fake RPC/store deterministik; test tidak boleh membutuhkan jaringan, wallet, private key, signing, atau broadcast nyata.
-- [ ] Tambahkan regression test bahwa emergency stop tidak dapat dibypass untuk entry tetapi tidak memblokir jalur exit pengurang risiko yang terotorisasi.
-- [ ] Naikkan coverage file execution route dan adapter berdasarkan branch keamanan yang bermakna, bukan sekadar mengejar aggregate threshold.
+- [x] Tambahkan integration test authenticated untuk kill switch, proposal entry, review, immutable transaction plan, dan mint receipt.
+- [x] Tambahkan integration test authenticated untuk exit proposal, review, immutable exit plan, ordered receipts, settlement, dan realized-loss update.
+- [x] Uji payload malformed, token salah, proposal expired, replay/idempotency, state transition ilegal, wallet mismatch, chain mismatch, calldata mismatch, deadline, receipt gagal, dan konfirmasi kurang.
+- [x] Uji kegagalan/timeout RPC pada setiap tahap dan pastikan adapter serta execution readiness selalu fail-closed.
+- [x] Gunakan fake RPC/store deterministik; test tidak boleh membutuhkan jaringan, wallet, private key, signing, atau broadcast nyata.
+- [x] Tambahkan regression test bahwa emergency stop tidak dapat dibypass untuk entry tetapi tidak memblokir jalur exit pengurang risiko yang terotorisasi.
+- [x] Naikkan coverage file execution route dan adapter berdasarkan branch keamanan yang bermakna, bukan sekadar mengejar aggregate threshold.
 
 #### P1.2 Hilangkan cycle dan perkecil public API slice
 
@@ -768,21 +768,29 @@ Temuan audit:
 
 Pekerjaan:
 
-- [ ] Catat dependency graph runtime dan type-only saat ini sebagai baseline otomatis.
-- [ ] Definisikan port kecil pada consumer untuk market history, current pool state, paper decision, active model, lifecycle, dan execution status.
-- [ ] Inject implementasi port di `src/app/`; hindari application service bergantung langsung pada concrete store slice lain.
-- [ ] Putus cycle `market-data <-> lp-execution` terlebih dahulu dengan memindahkan primitive/read adapter pool PancakeSwap ke owner yang tepat tanpa membuat business dumping ground di `shared/`.
-- [ ] Putus cycle `lp-analysis <-> paper-agent/lp-execution` dan `paper-agent <-> learning/lp-execution` secara bertahap melalui kontrak eksplisit atau orchestration di `app/`.
-- [ ] Ganti wildcard barrel dengan export eksplisit dan public contract minimal.
-- [ ] Tambahkan architecture test yang menolak runtime cycle, concrete infrastructure export yang tidak disetujui, dan penambahan dependency edge di luar allowlist transisi.
-- [ ] Hapus allowlist transisi setelah graph menjadi acyclic.
+- [x] Catat dependency graph runtime dan type-only saat ini sebagai baseline otomatis.
+- [x] Definisikan port kecil pada consumer untuk market history, current pool state, paper decision, active model, lifecycle, dan execution status.
+- [x] Inject implementasi port di `src/app/`; hindari application service bergantung langsung pada concrete store slice lain.
+- [x] Putus cycle `market-data <-> lp-execution` terlebih dahulu dengan memindahkan primitive/read adapter pool PancakeSwap ke owner yang tepat tanpa membuat business dumping ground di `shared/`.
+- [x] Putus cycle `lp-analysis <-> paper-agent/lp-execution` dan `paper-agent <-> learning/lp-execution` secara bertahap melalui kontrak eksplisit atau orchestration di `app/`.
+- [x] Ganti wildcard barrel dengan export eksplisit dan public contract minimal.
+- [x] Tambahkan architecture test yang menolak runtime cycle, concrete infrastructure export yang tidak disetujui, dan penambahan dependency edge di luar allowlist transisi.
+- [x] Hapus allowlist transisi setelah graph menjadi acyclic.
 
 Kriteria selesai:
 
-- Seluruh branch execution yang berdampak pada otorisasi, uang, state transition, atau receipt mempunyai test positif dan negatif.
-- Tidak ada runtime cycle antarslice.
-- `index.ts` hanya mengekspor kontrak yang dibutuhkan consumer.
-- `npm run check` dan seluruh compatibility baseline tetap lulus.
+- [x] Seluruh branch execution yang berdampak pada otorisasi, uang, state transition, atau receipt mempunyai test positif dan negatif.
+- [x] Tidak ada runtime cycle antarslice.
+- [x] `index.ts` hanya mengekspor kontrak yang dibutuhkan consumer.
+- [x] `npm run check` dan seluruh compatibility baseline tetap lulus.
+
+Catatan penyelesaian 2026-07-26 UTC:
+
+- Integration test authenticated menjalankan entry dan exit secara end-to-end memakai SQLite serta chain adapter deterministik, termasuk fail-closed timeout/failure, replay, immutable evidence, emergency stop, settlement, dan daily-loss update tanpa jaringan/signing/broadcast.
+- Coverage `execution-routes.ts` naik dari 38,92% line / 29,63% branch menjadi 90,14% line / 46,24% branch; reader on-chain yang kini dimiliki `market-data` naik dari 60% line menjadi 96,63% line / 69,70% branch.
+- Runtime graph menjadi acyclic dengan enam edge yang divalidasi otomatis. Type-only graph tetap dicatat eksplisit di `docs/feature-dependency-graph.md`.
+- Public `index.ts` seluruh slice tidak lagi memakai wildcard export; RPC/receipt adapter internal tidak diekspor sebagai public API.
+- `npm run check` lulus dengan 168 test dan aggregate coverage 88,36% line / 72,03% branch / 87,50% function.
 
 ### P2 — Rapikan Lifecycle Database dan Hotspot Maintainability
 

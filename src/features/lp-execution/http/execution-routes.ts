@@ -18,7 +18,7 @@ import {
   fetchPancakeV3PositionState,
   verifyMintAgainstImmutablePlan,
 } from '../infrastructure/pancakeswap-v3-position-tracker.js';
-import type { PancakeV3OnchainState } from '../infrastructure/pancakeswap-v3-onchain.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import type { PositionStore } from '../infrastructure/position-store.js';
 import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../../../shared/http/validation.js';
 
@@ -27,6 +27,28 @@ export interface ExecutionStatusView {
   blockers: readonly string[];
   [key: string]: unknown;
 }
+
+export interface ExecutionChainAdapter {
+  fetchWalletTokenState: typeof fetchWalletTokenState;
+  verifyPositionManagerAdapter: typeof verifyPositionManagerAdapter;
+  fetchAndVerifyMintReceipt: typeof fetchAndVerifyPancakeV3MintReceipt;
+  verifyMintAgainstImmutablePlan: typeof verifyMintAgainstImmutablePlan;
+  fetchPositionState: typeof fetchPancakeV3PositionState;
+  fetchWbnbSwapRouterAllowance: typeof fetchWbnbSwapRouterAllowance;
+  verifySwapRouter: typeof verifyPancakeV3SwapRouter;
+  fetchAndVerifyExitReceipts: typeof fetchAndVerifyExitReceipts;
+}
+
+const DEFAULT_EXECUTION_CHAIN_ADAPTER: ExecutionChainAdapter = {
+  fetchWalletTokenState,
+  verifyPositionManagerAdapter,
+  fetchAndVerifyMintReceipt: fetchAndVerifyPancakeV3MintReceipt,
+  verifyMintAgainstImmutablePlan,
+  fetchPositionState: fetchPancakeV3PositionState,
+  fetchWbnbSwapRouterAllowance,
+  verifySwapRouter: verifyPancakeV3SwapRouter,
+  fetchAndVerifyExitReceipts,
+};
 
 export interface ExecutionRouteDependencies {
   agentStore: AgentStore;
@@ -45,10 +67,12 @@ export interface ExecutionRouteDependencies {
   setExecutionAdapterReady(value: boolean): void;
   isExitSwapRouterReady(): boolean;
   setExitSwapRouterReady(value: boolean): void;
+  chainAdapter?: ExecutionChainAdapter;
 }
 
 export function registerExecutionControlRoutes(app: Express, dependencies: ExecutionRouteDependencies): void {
   const { agentStore, executionStore, positionStore } = dependencies;
+  const chainAdapter = dependencies.chainAdapter ?? DEFAULT_EXECUTION_CHAIN_ADAPTER;
   const EXECUTION_CONFIG = { limits: dependencies.limits };
   const MINT_RECEIPT_MIN_CONFIRMATIONS = dependencies.mintReceiptMinimumConfirmations;
   const getExecutionStatus = dependencies.getExecutionStatus;
@@ -242,7 +266,7 @@ export function registerExecutionControlRoutes(app: Express, dependencies: Execu
         req.body?.slippageBps === undefined ? 100 : parsePositiveNumber(req.body.slippageBps, 'slippageBps');
       const [state, walletState] = await Promise.all([
         captureOnchainPoolState(),
-        fetchWalletTokenState(req.body.wallet),
+        chainAdapter.fetchWalletTokenState(req.body.wallet),
       ]);
       const deadline = Math.floor(Date.now() / 1_000) + 10 * 60;
       const plan = buildFullRangeMintPlan({
@@ -344,16 +368,16 @@ export function registerExecutionControlRoutes(app: Express, dependencies: Execu
       }
 
       if (!dependencies.isExecutionAdapterReady()) {
-        const verified = await verifyPositionManagerAdapter();
+        const verified = await chainAdapter.verifyPositionManagerAdapter();
         dependencies.setExecutionAdapterReady(verified);
         if (!verified) throw new Error('Position Manager bytecode verification failed');
       }
-      const verified = await fetchAndVerifyPancakeV3MintReceipt({
+      const verified = await chainAdapter.fetchAndVerifyMintReceipt({
         txHash,
         wallet: binding.wallet,
         minimumConfirmations: MINT_RECEIPT_MIN_CONFIRMATIONS,
       });
-      verifyMintAgainstImmutablePlan({
+      chainAdapter.verifyMintAgainstImmutablePlan({
         verified,
         proposalCreatedAt: proposal.createdAt,
         proposalExpiresAt: proposal.expiresAt,
@@ -534,20 +558,20 @@ export function registerExecutionControlRoutes(app: Express, dependencies: Execu
         throw new Error('The verified LIVE NFT position is no longer open');
       }
       if (!dependencies.isExecutionAdapterReady()) {
-        const verified = await verifyPositionManagerAdapter();
+        const verified = await chainAdapter.verifyPositionManagerAdapter();
         dependencies.setExecutionAdapterReady(verified);
         if (!verified) throw new Error('Position Manager bytecode verification failed');
       }
       if (proposal.swapWbnbToUsdt && !dependencies.isExitSwapRouterReady()) {
-        const verified = await verifyPancakeV3SwapRouter();
+        const verified = await chainAdapter.verifySwapRouter();
         dependencies.setExitSwapRouterReady(verified);
         if (!verified) throw new Error('PancakeSwap V3 SwapRouter bytecode verification failed');
       }
 
       const [state, currentNft, swapAllowance] = await Promise.all([
         captureOnchainPoolState(),
-        fetchPancakeV3PositionState({ tokenId: nft.tokenId, expectedWallet: nft.owner }),
-        proposal.swapWbnbToUsdt ? fetchWbnbSwapRouterAllowance(nft.owner) : Promise.resolve('0'),
+        chainAdapter.fetchPositionState({ tokenId: nft.tokenId, expectedWallet: nft.owner }),
+        proposal.swapWbnbToUsdt ? chainAdapter.fetchWbnbSwapRouterAllowance(nft.owner) : Promise.resolve('0'),
       ]);
       const deadline = Math.floor(Date.now() / 1_000) + 10 * 60;
       const plan = buildFullRangeExitPlan({
@@ -632,7 +656,7 @@ export function registerExecutionControlRoutes(app: Express, dependencies: Execu
         throw new Error('Verified LIVE position is no longer open');
       }
       const state = await captureOnchainPoolState();
-      const evidence = await fetchAndVerifyExitReceipts({
+      const evidence = await chainAdapter.fetchAndVerifyExitReceipts({
         txHashes: req.body.txHashes,
         wallet: storedPlan.wallet,
         expectedTransactions: storedPlan.plan.transactions,

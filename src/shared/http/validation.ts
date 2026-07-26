@@ -1,5 +1,5 @@
 export function parsePositiveNumber(value: unknown, name: string): number {
-  if (typeof value !== 'string' || value.trim() === '') {
+  if ((typeof value !== 'string' && typeof value !== 'number') || String(value).trim() === '') {
     throw new Error(`Parameter "${name}" is required`);
   }
 

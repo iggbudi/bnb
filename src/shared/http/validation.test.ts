@@ -5,6 +5,7 @@ import { parsePositiveNumber, parsePositiveNumberOrDefault } from './validation.
 
 test('parsePositiveNumber accepts positive finite numbers', () => {
   assert.equal(parsePositiveNumber('12.5', 'amount'), 12.5);
+  assert.equal(parsePositiveNumber(12.5, 'amount'), 12.5);
 });
 
 test('parsePositiveNumber rejects missing, malformed, and non-positive values', () => {

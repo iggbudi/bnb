@@ -16,19 +16,13 @@ export function registerLpExecutionRoutes(app: Express, dependencies: LpExecutio
   registerExecutionControlRoutes(app, dependencies.execution);
 }
 
-export type { ExecutionRouteDependencies, ExecutionStatusView } from './http/execution-routes.js';
-export type { LifecycleRuntimeView, PositionLifecycleRouteDependencies } from './http/lifecycle-routes.js';
-export * from './domain/execution-control.js';
-export * from './domain/position-lifecycle.js';
-export * from './application/paper-position-manager.js';
-export * from './application/execution-service.js';
-export * from './application/scheduled-tasks.js';
-export * from './infrastructure/pancakeswap-v3-execution.js';
-export * from './infrastructure/pancakeswap-v3-exit.js';
-export * from './infrastructure/pancakeswap-v3-exit-tracker.js';
-export * from './infrastructure/pancakeswap-v3-onchain.js';
-export * from './infrastructure/pancakeswap-v3-position-tracker.js';
-export * from './infrastructure/execution-store.js';
-export * from './infrastructure/position-store.js';
-export * from './infrastructure/shadow-mode-store.js';
+export { ExecutionService } from './application/execution-service.js';
+export {
+  type PaperPositionLifecycleResult,
+  processPaperPositionLifecycle,
+} from './application/paper-position-manager.js';
+export { type LpExecutionTaskService, createExecutionTasks } from './application/scheduled-tasks.js';
+export { ExecutionStore } from './infrastructure/execution-store.js';
+export { PositionStore } from './infrastructure/position-store.js';
 export { lpExecutionSchema } from './infrastructure/schema.js';
+export { ShadowModeStore } from './infrastructure/shadow-mode-store.js';

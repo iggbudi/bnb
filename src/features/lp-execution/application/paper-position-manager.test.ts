@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { AgentStore, type PaperAgentDecisionInput } from '../../paper-agent/index.js';
-import type { PancakeV3OnchainState } from '../infrastructure/pancakeswap-v3-onchain.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import { processPaperPositionLifecycle } from './paper-position-manager.js';
 import { PositionStore } from '../infrastructure/position-store.js';
 import { SnapshotStore, type PoolSnapshotInput } from '../../market-data/index.js';

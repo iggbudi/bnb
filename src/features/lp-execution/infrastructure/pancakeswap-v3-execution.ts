@@ -1,5 +1,6 @@
 import 'dotenv/config';
-import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
+import { calculateFullRangeTokenAmounts } from '../../lp-analysis/index.js';
 
 export const PANCAKE_V3_POSITION_MANAGER = '0x46a15b0b27311cedf172ab29e4f4766fbe7f4364';
 const USDT_ADDRESS = '0x55d398326f99059ff775485246999027b3197955';
@@ -11,9 +12,6 @@ const APPROVE_SELECTOR = '095ea7b3';
 const BALANCE_OF_SELECTOR = '70a08231';
 const ALLOWANCE_SELECTOR = 'dd62ed3e';
 const MINT_SELECTOR = '88316456';
-const Q96 = 1n << 96n;
-const MIN_SQRT_RATIO = 4_295_128_739n;
-const MAX_SQRT_RATIO = 1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_342n;
 
 export interface UnsignedTransaction {
   purpose: 'APPROVE_USDT' | 'APPROVE_WBNB' | 'MINT_FULL_RANGE';
@@ -70,56 +68,6 @@ function encodeInt(value: number, bits = 24): string {
 
 function encodeAddress(value: string): string {
   return normalizeAddress(value).slice(2).padStart(64, '0');
-}
-
-function decimalToUnits(value: number, decimals: number): bigint {
-  if (!Number.isFinite(value) || value <= 0) throw new Error('Token amount must be positive');
-  const precision = Math.min(decimals, 12);
-  const [whole, fraction = ''] = value.toFixed(precision).split('.');
-  return BigInt(whole!) * 10n ** BigInt(decimals) + BigInt(fraction.padEnd(decimals, '0'));
-}
-
-function tickSqrtRatio(tick: number): number {
-  return 1.0001 ** (tick / 2);
-}
-
-export function fullRangeLiquidityForAmounts(amount0: bigint, amount1: bigint, sqrtPriceX96: bigint): bigint {
-  if (amount0 <= 0n || amount1 <= 0n) throw new Error('Full-range token amounts must be positive');
-  if (sqrtPriceX96 <= MIN_SQRT_RATIO || sqrtPriceX96 >= MAX_SQRT_RATIO) {
-    throw new Error('Current sqrt price is outside the full-range boundaries');
-  }
-
-  const liquidity0 = (amount0 * sqrtPriceX96 * MAX_SQRT_RATIO) / (MAX_SQRT_RATIO - sqrtPriceX96) / Q96;
-  const liquidity1 = (amount1 * Q96) / (sqrtPriceX96 - MIN_SQRT_RATIO);
-  const liquidity = liquidity0 < liquidity1 ? liquidity0 : liquidity1;
-  if (liquidity <= 0n) throw new Error('Full-range position liquidity is zero');
-  return liquidity;
-}
-
-export function calculateFullRangeTokenAmounts(
-  amountUsd: number,
-  priceWbnbUsd: number,
-  currentTick: number,
-  token0Decimals = 18,
-  token1Decimals = 18
-): { amount0: bigint; amount1: bigint; amount0Tokens: number; amount1Tokens: number } {
-  if (!(amountUsd > 0) || !(priceWbnbUsd > 0)) throw new Error('Capital and price must be positive');
-  const sqrtA = tickSqrtRatio(MIN_TICK);
-  const sqrtP = tickSqrtRatio(currentTick);
-  const sqrtB = tickSqrtRatio(MAX_TICK);
-  if (!(sqrtA < sqrtP && sqrtP < sqrtB)) throw new Error('Current tick is outside full range');
-
-  const amount0PerLiquidity = (sqrtB - sqrtP) / (sqrtP * sqrtB);
-  const amount1PerLiquidity = sqrtP - sqrtA;
-  const liquidity = amountUsd / (amount0PerLiquidity + amount1PerLiquidity * priceWbnbUsd);
-  const amount0Tokens = liquidity * amount0PerLiquidity;
-  const amount1Tokens = liquidity * amount1PerLiquidity;
-  return {
-    amount0: decimalToUnits(amount0Tokens, token0Decimals),
-    amount1: decimalToUnits(amount1Tokens, token1Decimals),
-    amount0Tokens,
-    amount1Tokens,
-  };
 }
 
 function approveData(spender: string, amount: bigint): string {

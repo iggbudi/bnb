@@ -1,11 +1,13 @@
 import { timingSafeEqual } from 'node:crypto';
-import type { AgentStore } from '../../paper-agent/index.js';
-import type { ExecutionStore } from '../infrastructure/execution-store.js';
-import type { LifecycleActivationStore } from '../../learning/index.js';
-import type { PositionStore } from '../infrastructure/position-store.js';
-import type { ShadowModeStore } from '../infrastructure/shadow-mode-store.js';
-import type { LearningService } from '../../learning/index.js';
-import type { MarketDataService } from '../../market-data/index.js';
+import type {
+  ActiveModelReader,
+  CurrentPoolHealthReader,
+  ExecutionControlRepository,
+  LifecycleActivationPort,
+  PaperDecisionReader,
+  PositionReader,
+  ShadowValidationPort,
+} from './ports.js';
 import { evaluateExecutionReadiness, type ExecutionLimits } from '../domain/execution-control.js';
 import { verifyPositionManagerAdapter } from '../infrastructure/pancakeswap-v3-execution.js';
 import { PANCAKE_V3_SWAP_ROUTER, verifyPancakeV3SwapRouter } from '../infrastructure/pancakeswap-v3-exit.js';
@@ -17,13 +19,13 @@ export interface ExecutionServiceConfig {
 }
 
 export interface ExecutionServiceDependencies {
-  agentStore: AgentStore;
-  executionStore: ExecutionStore;
-  lifecycleActivationStore: LifecycleActivationStore;
-  positionStore: PositionStore;
-  shadowModeStore: ShadowModeStore;
-  learningService: LearningService;
-  marketDataService: MarketDataService;
+  agentStore: PaperDecisionReader;
+  executionStore: ExecutionControlRepository;
+  lifecycleActivationStore: LifecycleActivationPort;
+  positionStore: PositionReader;
+  shadowModeStore: ShadowValidationPort;
+  learningService: ActiveModelReader;
+  marketDataService: CurrentPoolHealthReader;
   config: ExecutionServiceConfig;
   positionLifecycleEnabled: boolean;
   mintReceiptMinimumConfirmations: number;

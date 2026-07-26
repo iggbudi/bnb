@@ -10,9 +10,9 @@ import {
   feeGrowthIncrementUsd,
 } from '../../lp-analysis/index.js';
 import type { HighRiskStrategyPlan } from '../domain/high-risk-strategy.js';
-import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
-import { estimateLifecycleGas } from '../../lp-execution/index.js';
-import { SnapshotStore } from '../../market-data/index.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
+import { estimateLifecycleGas } from '../../lp-analysis/index.js';
+import type { SnapshotStore } from '../../market-data/index.js';
 
 export const AGGRESSIVE_PAPER_STRATEGY_VERSION = 'concentrated-aggressive-v1.0';
 export const AGGRESSIVE_INITIAL_CAPITAL_USD = 50;

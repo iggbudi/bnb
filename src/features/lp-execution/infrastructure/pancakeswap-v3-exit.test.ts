@@ -6,7 +6,7 @@ import {
   fullRangeAmountsForLiquidity,
   PANCAKE_V3_SWAP_ROUTER,
 } from './pancakeswap-v3-exit.js';
-import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import type { PancakeV3PositionState } from './pancakeswap-v3-position-tracker.js';
 
 const wallet = '0x1111111111111111111111111111111111111111';

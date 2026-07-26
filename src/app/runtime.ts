@@ -36,7 +36,7 @@ import {
   DIRECTIONAL_STRATEGY_VERSION,
 } from '../features/directional-paper/index.js';
 import { MarketDataService } from '../features/market-data/index.js';
-import { ExecutionService } from '../features/lp-execution/index.js';
+import { ExecutionService, processPaperPositionLifecycle } from '../features/lp-execution/index.js';
 import { registerAggressivePaperRoutes } from '../features/aggressive-paper/index.js';
 import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
 import { registerLearningRoutes } from '../features/learning/index.js';
@@ -150,7 +150,6 @@ const openAiLock = new AsyncLock();
 const paperAgentService = new PaperAgentService({
   agentStore,
   onchainStore,
-  positionStore,
   shadowModeStore,
   snapshotStore,
   marketDataService,
@@ -159,6 +158,15 @@ const paperAgentService = new PaperAgentService({
   openAiLock,
   openAiConfigured: config.openAiConfigured,
   positionLifecycleEnabled: POSITION_LIFECYCLE_ENABLED,
+  runPaperPositionLifecycle: (signal, market, onchain, now) =>
+    processPaperPositionLifecycle({
+      signal,
+      market: { price: market.price, tvl: market.tvl, volume1h: market.volume1h },
+      onchain,
+      positionStore,
+      snapshotStore,
+      now,
+    }),
   reconcileLifecycleActivation: now => executionService.reconcileLifecycleActivation(now),
 });
 const getReflectionStatus = paperAgentService.getReflectionStatus.bind(paperAgentService);

@@ -1,5 +1,5 @@
 import { calculateIL } from './amm.js';
-import { calculateFullRangeTokenAmounts, fullRangeLiquidityForAmounts } from '../../lp-execution/index.js';
+import { calculateFullRangeTokenAmounts, fullRangeLiquidityForAmounts } from './full-range-liquidity.js';
 
 const DEFAULT_PRICE_CHANGES = [-50, -20, -10, 0, 10, 20, 50, 100, 200];
 const PROTOCOL_FEE_DENOMINATOR_BPS = 10_000;

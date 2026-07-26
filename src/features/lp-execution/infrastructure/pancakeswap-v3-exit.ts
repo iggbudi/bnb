@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PANCAKE_V3_POSITION_MANAGER } from './pancakeswap-v3-execution.js';
-import type { PancakeV3OnchainState } from './pancakeswap-v3-onchain.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import type { PancakeV3PositionState } from './pancakeswap-v3-position-tracker.js';
 
 const DEFAULT_RPC_URL = 'https://bsc-dataseed1.bnbchain.org';

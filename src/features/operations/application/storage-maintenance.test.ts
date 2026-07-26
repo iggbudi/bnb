@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { OnchainStore } from '../../market-data/index.js';
-import type { PancakeV3OnchainState } from '../../lp-execution/index.js';
+import type { PancakeV3OnchainState } from '../../market-data/index.js';
 import { SnapshotStore, type PoolSnapshotInput } from '../../market-data/index.js';
 import {
   boundedIntegerEnvironment,
