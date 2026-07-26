@@ -12,10 +12,10 @@ Terakhir diperbarui: 2026-07-26 UTC.
 
 - [x] Fase 0 — baseline dan architecture guardrails.
 - [x] Fase 1 — composition root, konfigurasi, HTTP app factory, container, scheduler registration, dan process bootstrap telah dipindahkan ke `src/app/`.
-- [ ] Fase 2 — sedang berjalan; tujuh slice route selesai diekstrak, termasuk `lp-analysis` (7 dari 8 slice), berikutnya `lp-execution`.
-- [ ] Fase 3–7 — belum dimulai.
+- [x] Fase 2 — route seluruh 8 slice selesai diekstrak ke `src/features/`.
+- [ ] Fase 3–7 — belum dimulai; berikutnya pemindahan domain/application service dimulai dari `directional-paper`.
 
-Catatan transisi: route dan orchestration lama sementara berada di `src/app/runtime.ts`. File root `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` hanya menjadi compatibility wrapper. Route akan keluar dari runtime secara bertahap pada Fase 2.
+Catatan transisi: seluruh route bisnis sudah dimiliki feature slice; `src/app/runtime.ts` masih memuat orchestration/use case lama yang akan dipindahkan pada Fase 3. File root `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` tetap menjadi compatibility wrapper.
 
 ## 2. Prinsip dan Batasan
 
@@ -204,7 +204,8 @@ Kandidat file saat ini:
 - `position-store.ts` dan test
 - `shadow-mode-store.ts` dan test
 - `position-dashboard.test.ts`
-- Bagian admin/position/execution route dan task dari `src/app/runtime.ts`
+- Lifecycle, shadow, position, proposal, mint, exit, settlement, dan audit route sudah berada di `src/features/lp-execution/`
+- Execution readiness dan lifecycle orchestration masih berada di `src/app/runtime.ts`
 
 Public API slice:
 
@@ -481,15 +482,15 @@ Urutan dan kemajuan ekstraksi:
 - [x] `paper-agent`
 - [x] `learning`
 - [x] `lp-analysis`
-- [ ] `lp-execution`
+- [x] `lp-execution`
 
 Untuk setiap slice:
 
-- [ ] Buat `register<Feature>Routes(app, dependencies)`.
-- [ ] Pindahkan handler dari `src/app/runtime.ts` tanpa mengubah URL/status/JSON.
-- [ ] Bentuk DTO/response mapper di dalam slice.
-- [ ] Pindahkan integration/dashboard test terkait.
-- [ ] Jalankan test slice dan `npm run check`.
+- [x] Buat `register<Feature>Routes(app, dependencies)`.
+- [x] Pindahkan handler dari `src/app/runtime.ts` tanpa mengubah URL/status/JSON.
+- [x] Bentuk DTO/response mapper di dalam slice.
+- [x] Pindahkan atau tambahkan integration/dashboard test terkait.
+- [x] Jalankan test slice dan `npm run check`.
 
 Kriteria selesai:
 
