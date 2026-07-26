@@ -37,6 +37,7 @@ import { getPoolByAddress } from '../dexscreener.js';
 import { evaluateExecutionReadiness } from '../execution-control.js';
 import { registerAggressivePaperRoutes } from '../features/aggressive-paper/index.js';
 import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
+import { registerLearningRoutes } from '../features/learning/index.js';
 import { registerMarketDataRoutes } from '../features/market-data/index.js';
 import { registerOperationsRoutes } from '../features/operations/index.js';
 import { registerPaperAgentRoutes } from '../features/paper-agent/index.js';
@@ -1541,15 +1542,9 @@ registerPaperAgentRoutes(app, {
   isLearningEnabled: () => getLifecycleCompatibleActiveModel() !== null,
 });
 
-app.get('/api/agent/models', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      ...getLearningStatus(),
-      models: agentStore.getRecentModels(20),
-    },
-    timestamp: new Date().toISOString(),
-  });
+registerLearningRoutes(app, {
+  store: agentStore,
+  getLearningStatus,
 });
 
 app.get('/api/execution/status', (req, res) => {
