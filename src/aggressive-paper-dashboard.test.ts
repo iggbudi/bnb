@@ -5,7 +5,7 @@ import test from 'node:test';
 test('agent dashboard separates actual aggressive portfolio from overlapping full-range signals', () => {
   const html = readFileSync('public/index.html', 'utf8');
   const dashboard = readFileSync('public/dashboard.js', 'utf8');
-  const server = readFileSync('src/bnb-app.ts', 'utf8');
+  const server = readFileSync('src/app/runtime.ts', 'utf8');
   const frontend = `${html}\n${dashboard}`;
 
   assert.match(server, /\/api\/agent\/aggressive-performance/);

@@ -6,6 +6,17 @@ Mengubah struktur aplikasi dari kumpulan modul teknis di root `src/` menjadi **m
 
 Hasil akhirnya harus membuat perubahan pada satu fitur terlokalisasi dalam satu slice, sementara kode yang benar-benar generik ditempatkan di `shared/` dan composition root ditempatkan di `app/`.
 
+## Status Implementasi
+
+Terakhir diperbarui: 2026-07-26 UTC.
+
+- [x] Fase 0 — baseline dan architecture guardrails.
+- [x] Fase 1 — composition root, konfigurasi, HTTP app factory, container, scheduler registration, dan process bootstrap telah dipindahkan ke `src/app/`.
+- [ ] Fase 2 — ekstraksi route per slice; berikutnya dimulai dengan `directional-paper`.
+- [ ] Fase 3–7 — belum dimulai.
+
+Catatan transisi: route dan orchestration lama sementara berada di `src/app/runtime.ts`. File root `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` hanya menjadi compatibility wrapper. Route akan keluar dari runtime secara bertahap pada Fase 2.
+
 ## 2. Prinsip dan Batasan
 
 1. Refactor dilakukan bertahap; `npm run check` wajib lulus pada setiap tahap.
@@ -36,7 +47,7 @@ Kandidat file saat ini:
 - `dexscreener.ts`
 - `snapshot-store.ts` dan test
 - `onchain-store.ts` dan test
-- Bagian capture market/on-chain dan route history dari `bnb-app.ts`
+- Bagian capture market/on-chain dan route history dari `src/app/runtime.ts`
 
 Public API slice:
 
@@ -60,7 +71,7 @@ Kandidat file saat ini:
 - `full-range-fee.ts` dan test
 - `lp-simulator.ts` dan test
 - `openai-analysis.ts` dan test
-- Route analisis terkait dari `bnb-app.ts`
+- Route analisis terkait dari `src/app/runtime.ts`
 
 Public API slice:
 
@@ -85,7 +96,7 @@ Kandidat file saat ini:
 - `outcome-assessment.ts` dan test
 - `outcome-interpretation.ts` dan test
 - `agent-reflection.ts` dan test
-- Bagian task dan route paper agent dari `bnb-app.ts`
+- Bagian task dan route paper agent dari `src/app/runtime.ts`
 
 Public API slice:
 
@@ -109,7 +120,7 @@ Kandidat file saat ini:
 - `aggressive-paper-manager.ts` dan test
 - `aggressive-paper-store.ts`
 - `aggressive-paper-dashboard.test.ts`
-- Bagian route/task/dashboard terkait dari `bnb-app.ts` dan `public/dashboard.js`
+- Bagian route/task/dashboard terkait dari `src/app/runtime.ts` dan `public/dashboard.js`
 
 Public API slice:
 
@@ -133,7 +144,7 @@ Kandidat file saat ini:
 - `directional-paper-store.ts`
 - `directional-paper-dashboard.test.ts`
 - `directional-backtest-cli.ts`
-- Bagian route/task/dashboard terkait dari `bnb-app.ts` dan `public/dashboard.js`
+- Bagian route/task/dashboard terkait dari `src/app/runtime.ts` dan `public/dashboard.js`
 
 Public API slice:
 
@@ -156,7 +167,7 @@ Kandidat file saat ini:
 - `learning-model.ts` dan test
 - `lifecycle-activation-store.ts` dan test
 - `learning-content.test.ts`
-- Bagian training/model route/task dari `bnb-app.ts`
+- Bagian training/model route/task dari `src/app/runtime.ts`
 
 Public API slice:
 
@@ -187,7 +198,7 @@ Kandidat file saat ini:
 - `position-store.ts` dan test
 - `shadow-mode-store.ts` dan test
 - `position-dashboard.test.ts`
-- Bagian admin/position/execution route dan task dari `bnb-app.ts`
+- Bagian admin/position/execution route dan task dari `src/app/runtime.ts`
 
 Public API slice:
 
@@ -210,7 +221,7 @@ Kandidat file saat ini:
 - `operational-controls.ts` dan test
 - `upstream-resilience.ts` dan test
 - Health route dari `bnb-routes.ts`
-- Bagian readiness/storage task dari `bnb-app.ts`
+- Bagian readiness/storage task dari `src/app/runtime.ts`
 
 Public API slice:
 
@@ -423,13 +434,13 @@ Nama dan tipe final harus mengikuti model aktual. Tujuannya adalah menghilangkan
 
 ### Fase 0 — Baseline dan Guardrails
 
-- [ ] Pastikan working tree bersih.
-- [ ] Jalankan dan catat baseline `npm run check`.
-- [ ] Catat daftar endpoint dan contoh response utama sebagai compatibility baseline.
-- [ ] Catat daftar scheduler, interval, dan status readiness.
-- [ ] Catat `APPLICATION_SCHEMA_VERSION`, daftar tabel, index, dan hasil `PRAGMA quick_check`.
-- [ ] Tambahkan architecture test sederhana untuk mendeteksi import terlarang setelah folder baru tersedia.
-- [ ] Putuskan apakah path alias diperlukan. Default: pertahankan relative import terlebih dahulu agar risiko konfigurasi rendah.
+- [x] Pastikan working tree bersih.
+- [x] Jalankan dan catat baseline `npm run check`.
+- [x] Catat daftar endpoint dan contoh response utama sebagai compatibility baseline di `docs/vertical-slicing-baseline.md`.
+- [x] Catat daftar scheduler, interval, dan status readiness.
+- [x] Catat `APPLICATION_SCHEMA_VERSION`, daftar tabel, index, dan hasil `PRAGMA quick_check`.
+- [x] Tambahkan architecture test sederhana untuk mendeteksi import terlarang setelah folder baru tersedia.
+- [x] Putuskan tidak memakai path alias pada tahap ini; relative import dipertahankan agar risiko konfigurasi rendah.
 
 Kriteria selesai:
 
@@ -440,12 +451,12 @@ Kriteria selesai:
 
 Target utama: mengecilkan `bnb-app.ts` tanpa memindahkan domain dahulu.
 
-- [ ] Pindahkan pembuatan Express app ke `src/app/create-app.ts`.
-- [ ] Pindahkan `BnbServiceContainer` ke `src/app/container.ts`.
-- [ ] Pindahkan konfigurasi environment terpusat ke `src/app/config.ts`.
-- [ ] Pindahkan registrasi scheduler ke `src/app/register-schedulers.ts`.
-- [ ] Pindahkan bootstrap `server-bnb.ts` ke `src/app/server.ts`, lalu pertahankan wrapper kompatibel bila script masih menunjuk file lama.
-- [ ] Jadikan `bnb-app.ts` wrapper sementara atau hapus setelah seluruh import diperbarui.
+- [x] Pindahkan pembuatan Express app ke `src/app/create-app.ts`.
+- [x] Pindahkan `BnbServiceContainer` ke `src/app/container.ts`.
+- [x] Pindahkan konfigurasi environment terpusat ke `src/app/config.ts`.
+- [x] Pindahkan registrasi scheduler ke `src/app/register-schedulers.ts`.
+- [x] Pindahkan bootstrap `server-bnb.ts` ke `src/app/server.ts`, lalu pertahankan wrapper kompatibel karena script masih menunjuk file lama.
+- [x] Jadikan `bnb-app.ts` wrapper sementara; runtime transisi berada di `src/app/runtime.ts`.
 
 Kriteria selesai:
 
@@ -469,7 +480,7 @@ Urutan yang disarankan dari risiko paling rendah:
 Untuk setiap slice:
 
 - [ ] Buat `register<Feature>Routes(app, dependencies)`.
-- [ ] Pindahkan handler dari `bnb-app.ts` tanpa mengubah URL/status/JSON.
+- [ ] Pindahkan handler dari `src/app/runtime.ts` tanpa mengubah URL/status/JSON.
 - [ ] Bentuk DTO/response mapper di dalam slice.
 - [ ] Pindahkan integration/dashboard test terkait.
 - [ ] Jalankan test slice dan `npm run check`.
