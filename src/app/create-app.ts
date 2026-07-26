@@ -2,19 +2,13 @@ import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 
 import { FixedWindowRateLimiter } from '../operational-controls.js';
+import { safeErrorMessage } from '../shared/http/errors.js';
 import type { BnbAppConfig } from './config.js';
 
 export interface BnbHttpApp {
   app: express.Express;
   getActiveHttpRequests(): number;
   limitAiRequests(req: Request, res: Response, next: NextFunction): void;
-}
-
-export function safeErrorMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error)) return fallback;
-  return error.message
-    .replace(/https?:\/\/[^\s)]+/gi, '[redacted-url]')
-    .replace(/(api[_-]?key|token|password|secret)=([^\s&]+)/gi, '$1=[redacted]');
 }
 
 function applyRateLimitResult(

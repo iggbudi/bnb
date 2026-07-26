@@ -37,6 +37,7 @@ import { getPoolByAddress } from '../dexscreener.js';
 import { evaluateExecutionReadiness } from '../execution-control.js';
 import { registerAggressivePaperRoutes } from '../features/aggressive-paper/index.js';
 import { registerDirectionalPaperRoutes } from '../features/directional-paper/index.js';
+import { registerMarketDataRoutes } from '../features/market-data/index.js';
 import { registerOperationsRoutes } from '../features/operations/index.js';
 import {
   estimateFullRangeFeeBetweenCheckpoints,
@@ -123,10 +124,11 @@ import {
 import { parsePositiveNumber, parsePositiveNumberOrDefault } from '../validation.js';
 import type { AILPAnalysis, LPAnalysisMetrics } from '../openai-analysis.js';
 import type { LPInvestmentProjection, Pair } from '../types.js';
+import { safeErrorMessage } from '../shared/http/errors.js';
 import { SingleFlight, UpstreamError } from '../upstream-resilience.js';
 import { loadBnbAppConfig } from './config.js';
 import { BnbServiceContainer } from './container.js';
-import { createBnbHttpApp, safeErrorMessage } from './create-app.js';
+import { createBnbHttpApp } from './create-app.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1215,143 +1217,14 @@ registerOperationsRoutes(app, {
   getStorageStatus: () => storageMaintenance.getStatus(),
 });
 
-// Get WBNB/USDT analysis
-app.get('/api/wbnbusdt', async (req, res) => {
-  try {
-    console.log('📊 Fetching WBNB/USDT data...');
-    const analysis = await capturePoolSnapshot();
-
-    res.json({
-      success: true,
-      data: analysis,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('WBNB/USDT error:', error);
-    res.status(error instanceof UpstreamError && error.code === 'UPSTREAM_TIMEOUT' ? 504 : 502).json({
-      success: false,
-      error: safeErrorMessage(error, 'Market data is unavailable'),
-      code: upstreamErrorCode(error),
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-// Read persisted pool history
-app.get('/api/history', (req, res) => {
-  try {
-    const hours = req.query.hours === undefined ? 24 : parsePositiveNumber(req.query.hours, 'hours');
-    const requestedLimit =
-      req.query.limit === undefined ? 1_440 : parsePositiveNumber(req.query.limit, 'limit');
-    const limit = Math.min(10_000, Math.max(1, Math.floor(requestedLimit)));
-
-    if (hours > 24 * 30) {
-      throw new Error('Parameter "hours" must not exceed 720');
-    }
-
-    const snapshots = snapshotStore.getHistory(hours, limit);
-    res.json({
-      success: true,
-      data: {
-        hours,
-        count: snapshots.length,
-        snapshots,
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid history parameters',
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-// Downsampled history for charts
-app.get('/api/history/chart', (req, res) => {
-  try {
-    const hours = req.query.hours === undefined ? 24 : parsePositiveNumber(req.query.hours, 'hours');
-    const requestedPoints =
-      req.query.points === undefined ? 240 : parsePositiveNumber(req.query.points, 'points');
-
-    if (hours > 24 * 30) {
-      throw new Error('Parameter "hours" must not exceed 720');
-    }
-
-    const maxPoints = Math.min(1_000, Math.max(2, Math.floor(requestedPoints)));
-    const points = snapshotStore.getChartHistory(hours, maxPoints);
-    res.json({
-      success: true,
-      data: { hours, count: points.length, points },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid chart parameters',
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-// Aggregated historical statistics for 1h, 24h, 7d, and 30d
-app.get('/api/history/stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      totalRows: snapshotStore.count(),
-      periods: snapshotStore.getStatistics(),
-    },
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Read-only PancakeSwap V3 on-chain state
-app.get('/api/onchain/pool', rpcHeavyLimit, async (req, res) => {
-  try {
-    const state = await captureOnchainPoolState();
-    res.json({
-      success: true,
-      data: {
-        ...state,
-        storedSnapshots: onchainStore.count(),
-        dataAdapterReady: true,
-        executionAdapterReady: executionAdapterVerified,
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(error instanceof UpstreamError && error.code === 'UPSTREAM_TIMEOUT' ? 504 : 502).json({
-      success: false,
-      error: safeErrorMessage(error, 'On-chain data is unavailable'),
-      code: upstreamErrorCode(error),
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
-
-app.get('/api/onchain/history', (req, res) => {
-  try {
-    const requestedLimit =
-      req.query.limit === undefined ? 100 : parsePositiveNumber(req.query.limit, 'limit');
-    const limit = Math.min(10_000, Math.max(1, Math.floor(requestedLimit)));
-    res.json({
-      success: true,
-      data: {
-        count: onchainStore.count(),
-        snapshots: onchainStore.getRecent(limit),
-        health: onchainHealth,
-      },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Invalid on-chain history parameters',
-      timestamp: new Date().toISOString(),
-    });
-  }
+registerMarketDataRoutes(app, {
+  snapshotStore,
+  onchainStore,
+  onchainMiddleware: rpcHeavyLimit,
+  captureMarketSnapshot: capturePoolSnapshot,
+  captureOnchainState: captureOnchainPoolState,
+  getOnchainHealth: () => onchainHealth,
+  isExecutionAdapterReady: () => executionAdapterVerified,
 });
 
 app.get('/api/lifecycle/activation', (req, res) => {

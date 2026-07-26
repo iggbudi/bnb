@@ -12,7 +12,7 @@ Terakhir diperbarui: 2026-07-26 UTC.
 
 - [x] Fase 0 — baseline dan architecture guardrails.
 - [x] Fase 1 — composition root, konfigurasi, HTTP app factory, container, scheduler registration, dan process bootstrap telah dipindahkan ke `src/app/`.
-- [ ] Fase 2 — sedang berjalan; route `directional-paper`, `aggressive-paper`, dan `operations` selesai diekstrak (3 dari 8 slice), berikutnya `market-data`.
+- [ ] Fase 2 — sedang berjalan; route `directional-paper`, `aggressive-paper`, `operations`, dan `market-data` selesai diekstrak (4 dari 8 slice), berikutnya `paper-agent`.
 - [ ] Fase 3–7 — belum dimulai.
 
 Catatan transisi: route dan orchestration lama sementara berada di `src/app/runtime.ts`. File root `bnb-app.ts`, `bnb-services.ts`, `bnb-schedulers.ts`, dan `server-bnb.ts` hanya menjadi compatibility wrapper. Route akan keluar dari runtime secara bertahap pada Fase 2.
@@ -47,7 +47,8 @@ Kandidat file saat ini:
 - `dexscreener.ts`
 - `snapshot-store.ts` dan test
 - `onchain-store.ts` dan test
-- Bagian capture market/on-chain dan route history dari `src/app/runtime.ts`
+- Market, history, statistics, dan on-chain route sudah berada di `src/features/market-data/`
+- Capture task/orchestration masih berada di `src/app/runtime.ts`
 
 Public API slice:
 
@@ -473,7 +474,7 @@ Urutan dan kemajuan ekstraksi:
 - [x] `directional-paper`
 - [x] `aggressive-paper`
 - [x] `operations`
-- [ ] `market-data`
+- [x] `market-data`
 - [ ] `paper-agent`
 - [ ] `learning`
 - [ ] `lp-analysis`
