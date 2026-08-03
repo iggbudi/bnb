@@ -505,6 +505,11 @@ export function runDirectionalForwardCycle(input: {
       config,
       sourceLabel: 'pool_snapshots_forward_minute',
     });
+  } else if (JSON.stringify(run.config) !== JSON.stringify(config)) {
+    // Config layanan bersifat otoritatif untuk run forward aktif: selaraskan
+    // config tersimpan agar perubahan (mis. opposingExitAtBreakeven) berlaku
+    // tanpa perlu membuat run baru.
+    run = input.store.updateRunConfig(run.id, config);
   }
   const candidates = run.lastProcessedAt
     ? history.filter(snapshot => snapshot.capturedAt > run!.lastProcessedAt!)

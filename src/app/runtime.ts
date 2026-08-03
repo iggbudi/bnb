@@ -108,6 +108,12 @@ const POSITION_LIFECYCLE_ENABLED = config.positionLifecycleEnabled;
 const AGGRESSIVE_PAPER_ENABLED = config.aggressivePaperEnabled;
 const DIRECTIONAL_PAPER_ENABLED = config.directionalPaperEnabled;
 const MINT_RECEIPT_MIN_CONFIRMATIONS = config.mintReceiptMinimumConfirmations;
+// Config directional untuk layanan forward; flag breakeven mengikuti kebijakan aplikasi
+// (DIRECTIONAL_OPPOSING_BREAKEVEN, default aktif).
+const DIRECTIONAL_CONFIG = {
+  ...DEFAULT_DIRECTIONAL_CONFIG,
+  opposingExitAtBreakeven: config.directionalOpposingBreakeven,
+};
 const learningService = new LearningService({
   store: agentStore,
   verdictHorizonHours: ENTRY_VERDICT_HORIZON_HOURS,
@@ -121,7 +127,7 @@ const directionalPaperService = new DirectionalPaperService({
   store: directionalPaperStore,
   snapshotStore,
   enabled: DIRECTIONAL_PAPER_ENABLED,
-  config: DEFAULT_DIRECTIONAL_CONFIG,
+  config: DIRECTIONAL_CONFIG,
 });
 const marketDataService = new MarketDataService(snapshotStore, onchainStore);
 const getWBNBUSDTPair = marketDataService.getPair.bind(marketDataService);
@@ -301,7 +307,7 @@ registerDirectionalPaperRoutes(app, {
   store: directionalPaperStore,
   enabled: DIRECTIONAL_PAPER_ENABLED,
   strategyVersion: DIRECTIONAL_STRATEGY_VERSION,
-  config: DEFAULT_DIRECTIONAL_CONFIG,
+  config: DIRECTIONAL_CONFIG,
 });
 
 registerPaperAgentRoutes(app, {

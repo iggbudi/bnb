@@ -360,6 +360,13 @@ export class DirectionalPaperStore {
     return this.getRun(input.id)!;
   }
 
+  updateRunConfig(id: number, config: DirectionalStrategyConfig): DirectionalPaperRun {
+    this.database
+      .prepare('UPDATE directional_paper_runs SET config_json = ? WHERE id = ?')
+      .run(JSON.stringify(config), id);
+    return this.getRun(id)!;
+  }
+
   completeRun(id: number, endedAt: string): DirectionalPaperRun {
     this.database
       .prepare(

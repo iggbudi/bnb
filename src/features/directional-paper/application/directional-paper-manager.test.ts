@@ -6,10 +6,12 @@ import test from 'node:test';
 
 import {
   runDirectionalBacktest,
+  runDirectionalForwardCycle,
   processDirectionalSnapshot,
   type DirectionalLifecycleResult,
 } from './directional-paper-manager.js';
 import { DirectionalPaperStore } from '../infrastructure/directional-paper-store.js';
+import { SnapshotStore } from '../../market-data/index.js';
 import {
   DEFAULT_DIRECTIONAL_CONFIG,
   type DirectionalStrategyConfig,
@@ -240,6 +242,48 @@ test('directional lifecycle closes an opposing signal at breakeven when configur
     assert.ok(realized > -0.3);
     assert.ok(realized < -0.05);
   } finally {
+    testContext.store.close();
+    rmSync(testContext.directory, { recursive: true, force: true });
+  }
+});
+
+test('forward cycle reconciles the active run config when the service config changes', () => {
+  const testContext = context();
+  const snapshotStore = new SnapshotStore(join(testContext.directory, 'paper.sqlite'), {
+    initializeSchema: true,
+  });
+  try {
+    // getHistory memakai Date.now(), jadi snapshot harus relatif ke waktu sekarang
+    const count = 50;
+    const endAt = new Date(Date.now() - 60_000);
+    const snapshots: PoolSnapshot[] = Array.from({ length: count }, (_, index) => {
+      const capturedAt = new Date(endAt.getTime() - (count - 1 - index) * 60_000).toISOString();
+      return { ...snapshot(100 * (1 + index * 0.001), 0), capturedAt };
+    });
+    for (const item of snapshots) {
+      const { capturedAt, ...input } = item;
+      snapshotStore.save(input, new Date(capturedAt));
+    }
+    const run = testContext.store.createRun({
+      mode: 'FORWARD',
+      startedAt: snapshots[0]!.capturedAt,
+      config: CONFIG,
+      sourceLabel: 'test',
+    });
+    const breakevenConfig: DirectionalStrategyConfig = { ...CONFIG, opposingExitAtBreakeven: true };
+    const performance = runDirectionalForwardCycle({
+      store: testContext.store,
+      snapshotStore,
+      config: breakevenConfig,
+      now: endAt,
+    });
+    assert.ok(performance);
+    assert.equal(performance.run.id, run.id);
+    const stored = testContext.store.getRun(run.id)!;
+    assert.equal(stored.config.opposingExitAtBreakeven, true);
+    assert.equal(stored.sourceLabel, 'test'); // run yang sama, tidak dibuat ulang
+  } finally {
+    snapshotStore.close();
     testContext.store.close();
     rmSync(testContext.directory, { recursive: true, force: true });
   }
