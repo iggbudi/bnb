@@ -29,11 +29,12 @@ window.BnbDashboard.app = (() => {
 
     const morePanel = document.getElementById('tab-more-panel');
     const moreToggle = document.querySelector('.tab-more-toggle');
+    const moreLabelSpan = moreToggle ? moreToggle.querySelector('span') : null;
 
     function syncMoreLabel() {
-      if (!moreToggle || !morePanel) return;
+      if (!moreToggle || !morePanel || !moreLabelSpan) return;
       const activeUtility = morePanel.querySelector('.tab.active');
-      moreToggle.textContent = activeUtility ? `${activeUtility.textContent} ▾` : '⋯ Lainnya';
+      moreLabelSpan.textContent = activeUtility ? `${activeUtility.dataset.moreLabel || ''} ▾` : 'Lainnya';
     }
 
     document.querySelectorAll('.tab').forEach(tab => {

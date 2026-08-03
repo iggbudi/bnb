@@ -7,6 +7,24 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <!-- Sidebar navigation (desktop) -->
+    <nav class="sidebar" aria-label="Navigasi utama">
+      <div class="sidebar-brand">
+        <span class="token-badge token-bnb">WBNB</span>
+        <span class="pair-separator">/</span>
+        <span class="token-badge token-usdt">USDT</span>
+        <div class="sidebar-subtitle">LP Analyzer</div>
+      </div>
+      <button class="tab tab-primary active" data-tab="overview">📊 Overview</button>
+      <button class="tab tab-primary" data-tab="agent">🧠 AI Agent</button>
+      <button class="tab tab-primary" data-tab="directional">📈 Perp Paper</button>
+      <button class="tab tab-primary" data-tab="position">🧭 Position</button>
+      <div class="sidebar-divider">Utilitas</div>
+      <button class="tab" data-tab="simulator">💰 LP Simulator</button>
+      <button class="tab" data-tab="il">💧 IL Calculator</button>
+      <button class="tab" data-tab="learn">📖 Belajar</button>
+    </nav>
+
     <div class="container">
       <!-- Header -->
       <header>
@@ -25,29 +43,7 @@
         <div id="lastUpdate" class="refresh-info"></div>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button class="tab tab-primary active" data-tab="overview">📊 Overview</button>
-        <button class="tab tab-primary" data-tab="agent">🧠 AI Agent</button>
-        <button class="tab tab-primary" data-tab="directional">📈 Perp Paper</button>
-        <button class="tab tab-primary" data-tab="position">🧭 Position</button>
-
-        <div class="tab-more">
-          <button
-            class="tab tab-more-toggle"
-            type="button"
-            aria-expanded="false"
-            aria-controls="tab-more-panel"
-          >
-            ⋯ Lainnya
-          </button>
-          <div class="tab-more-panel" id="tab-more-panel" hidden>
-            <button class="tab" data-tab="simulator">💰 LP Simulator</button>
-            <button class="tab" data-tab="il">💧 IL Calculator</button>
-            <button class="tab" data-tab="learn">📖 Belajar</button>
-          </div>
-        </div>
-      </div>
+      <!-- Tabs (baris atas) sudah digantikan sidebar/bottom-nav di ide B -->
 
       <!-- Tab 1: Overview -->
       <div class="tab-content active" id="tab-overview">
@@ -516,6 +512,33 @@
         </div>
       </div>
     </div>
+
+    <!-- Bottom navigation (mobile) -->
+    <nav class="bottom-nav" aria-label="Navigasi cepat">
+      <button class="tab active" data-tab="overview">📊<span>Overview</span></button>
+      <button class="tab" data-tab="agent">🧠<span>Agent</span></button>
+      <button class="tab" data-tab="directional">📈<span>Perp</span></button>
+      <button class="tab" data-tab="position">🧭<span>Position</span></button>
+      <div class="tab-more">
+        <button
+          class="tab tab-more-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="tab-more-panel"
+        >
+          ⋯<span>Lainnya</span>
+        </button>
+        <div class="tab-more-panel" id="tab-more-panel" hidden>
+          <button class="tab" data-tab="simulator" data-more-label="LP Simulator">
+            💰<span>LP Simulator</span>
+          </button>
+          <button class="tab" data-tab="il" data-more-label="IL Calculator">
+            💧<span>IL Calculator</span>
+          </button>
+          <button class="tab" data-tab="learn" data-more-label="Belajar">📖<span>Belajar</span></button>
+        </div>
+      </div>
+    </nav>
 
     <script src="/shared/api-client.js" defer></script>
     <script src="/shared/format.js" defer></script>

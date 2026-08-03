@@ -128,13 +128,6 @@ header p {
 }
 
 /* Tabs */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
 .tab {
   flex: 1 1 120px;
   padding: 12px;
@@ -165,22 +158,157 @@ header p {
   letter-spacing: 0.01em;
 }
 
-/* Dropdown tab utilitas (⋯ Lainnya) */
+/* ===== Sidebar (desktop) ===== */
+.sidebar {
+  display: none;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0 18px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sidebar-brand .token-badge {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+}
+
+.sidebar-subtitle {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  flex-basis: 100%;
+}
+
+.sidebar-divider {
+  margin: 16px 10px 6px;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+}
+
+/* ===== Bottom navigation (mobile) ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+}
+
+.bottom-nav .tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 2px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.bottom-nav .tab span {
+  font-size: 0.62rem;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.bottom-nav .tab:hover {
+  background: rgba(118, 69, 217, 0.1);
+  color: var(--text-primary);
+  border: none;
+}
+
+.bottom-nav .tab.active {
+  background: rgba(118, 69, 217, 0.18);
+  color: var(--accent);
+  border: none;
+}
+
+body {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 900px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    padding: 20px 14px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 40;
+  }
+
+  .sidebar .tab {
+    flex: none;
+    width: 100%;
+    text-align: left;
+    border-radius: 12px;
+    font-size: 0.92rem;
+  }
+
+  .sidebar .tab.active {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .container {
+    margin-left: 240px;
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+
+  body {
+    padding-bottom: 0;
+  }
+}
+
+/* Dropdown tab utilitas (⋯ Lainnya) — bottom sheet di mobile */
 .tab-more {
   position: relative;
-  flex: 1 1 130px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .tab-more-toggle {
-  flex: 1 1 130px;
   min-width: 0;
 }
 
 .tab-more-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 230px;
+  position: fixed;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  left: 12px;
+  right: 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -188,7 +316,7 @@ header p {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -6px 30px rgba(0, 0, 0, 0.45);
   z-index: 50;
 }
 
