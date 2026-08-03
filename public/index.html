@@ -27,13 +27,26 @@
 
       <!-- Tabs -->
       <div class="tabs">
-        <button class="tab active" data-tab="overview">📊 Overview</button>
-        <button class="tab" data-tab="simulator">💰 LP Simulator</button>
-        <button class="tab" data-tab="il">💧 IL Calculator</button>
-        <button class="tab" data-tab="agent">🧠 AI Agent</button>
-        <button class="tab" data-tab="directional">📈 Perp Paper</button>
-        <button class="tab" data-tab="position">🧭 Position</button>
-        <button class="tab" data-tab="learn">📖 Belajar</button>
+        <button class="tab tab-primary active" data-tab="overview">📊 Overview</button>
+        <button class="tab tab-primary" data-tab="agent">🧠 AI Agent</button>
+        <button class="tab tab-primary" data-tab="directional">📈 Perp Paper</button>
+        <button class="tab tab-primary" data-tab="position">🧭 Position</button>
+
+        <div class="tab-more">
+          <button
+            class="tab tab-more-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="tab-more-panel"
+          >
+            ⋯ Lainnya
+          </button>
+          <div class="tab-more-panel" id="tab-more-panel" hidden>
+            <button class="tab" data-tab="simulator">💰 LP Simulator</button>
+            <button class="tab" data-tab="il">💧 IL Calculator</button>
+            <button class="tab" data-tab="learn">📖 Belajar</button>
+          </div>
+        </div>
       </div>
 
       <!-- Tab 1: Overview -->

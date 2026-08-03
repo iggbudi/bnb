@@ -160,6 +160,53 @@ header p {
   font-weight: 700;
 }
 
+.tab-primary {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Dropdown tab utilitas (⋯ Lainnya) */
+.tab-more {
+  position: relative;
+  flex: 1 1 130px;
+}
+
+.tab-more-toggle {
+  flex: 1 1 130px;
+  min-width: 0;
+}
+
+.tab-more-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}
+
+.tab-more-panel[hidden] {
+  display: none;
+}
+
+.tab-more-panel .tab {
+  flex: none;
+  width: 100%;
+  text-align: left;
+}
+
+.tab-more-panel .tab.active {
+  background: var(--accent);
+  color: #191326;
+}
+
 .tab-content {
   display: none;
 }
