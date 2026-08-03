@@ -110,10 +110,14 @@ function exitReason(input: {
 function closeMarkForReason(
   position: DirectionalPaperPosition,
   observedMark: number,
-  reasonCode: string
+  reasonCode: string,
+  config: DirectionalStrategyConfig
 ): number {
-  if (reasonCode !== 'LIQUIDATION') return observedMark;
-  return position.liquidationPrice;
+  if (reasonCode === 'LIQUIDATION') return position.liquidationPrice;
+  if (reasonCode === 'OPPOSING_SIGNAL' && config.opposingExitAtBreakeven) {
+    return position.entryFillPrice;
+  }
+  return observedMark;
 }
 
 export function processDirectionalSnapshot(input: {
@@ -204,7 +208,7 @@ export function processDirectionalSnapshot(input: {
         forceClose: input.forceClose ?? false,
       });
       if (reasonCode) {
-        const exitMark = closeMarkForReason(position, markPrice, reasonCode);
+        const exitMark = closeMarkForReason(position, markPrice, reasonCode, config);
         const fillPrice = exitFillPrice(position.side, exitMark, config.slippageBps);
         const exitNotionalUsd = fillPrice * position.quantity;
         const exitFeeUsd = fee(exitNotionalUsd, config.takerFeeBps);

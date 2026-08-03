@@ -24,7 +24,7 @@ Fee tier diverifikasi langsung melalui fungsi `fee()` pada contract pool. Pool d
 - Simulator full-range 50/50 dan kalkulator impermanent loss.
 - Analisis opsional GPT-5.6 Sol dengan reasoning medium dan konteks histori.
 - Portfolio paper concentrated agresif bermodal awal US$50 dengan target +10%, stop −5%, fee on-chain, recenter terkendali, dan P&L aktual non-overlap.
-- Agent directional paper long/short bermodal awal US$50 dan leverage 5×, dengan keputusan per menit, TP/SL, trailing stop, liquidation sintetis, fee, slippage, backtest, dan forward simulation tanpa API key trading; seluruh statusnya berada pada tab khusus **Perp Paper**.
+- Agent directional paper long/short bermodal awal US$50 dan leverage 5×, dengan keputusan per menit, TP/SL, trailing stop, liquidation sintetis, fee, slippage, backtest, dan forward simulation tanpa API key trading; seluruh statusnya berada pada tab khusus **Perp Paper**. Konfigurasi `opposingExitAtBreakeven` (default off) membuat exit `OPPOSING_SIGNAL` terjadi di harga entry (breakeven) alih-alih harga pasar — tersedia di CLI backtest via `--breakeven`.
 - Materi Belajar tentang HOLD vs LP, full-range vs agresif, out-of-range, recenter, risiko, dan cara membaca performa.
 
 ## Tech Stack

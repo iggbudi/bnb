@@ -4,7 +4,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { runDirectionalBacktest, processDirectionalSnapshot } from './directional-paper-manager.js';
+import {
+  runDirectionalBacktest,
+  processDirectionalSnapshot,
+  type DirectionalLifecycleResult,
+} from './directional-paper-manager.js';
 import { DirectionalPaperStore } from '../infrastructure/directional-paper-store.js';
 import {
   DEFAULT_DIRECTIONAL_CONFIG,
@@ -131,6 +135,110 @@ test('directional lifecycle is idempotent for one run and captured minute', () =
     });
     assert.equal(repeated.action, 'ALREADY_PROCESSED');
     assert.equal(testContext.store.getRecentDecisions(run.id).length, 1);
+  } finally {
+    testContext.store.close();
+    rmSync(testContext.directory, { recursive: true, force: true });
+  }
+});
+
+test('directional lifecycle closes an opposing signal at market price by default', () => {
+  const testContext = context();
+  try {
+    const history = longHistory();
+    const run = testContext.store.createRun({
+      mode: 'FORWARD',
+      startedAt: history[0]!.capturedAt,
+      config: CONFIG,
+      sourceLabel: 'test',
+    });
+    const opened = processDirectionalSnapshot({
+      runId: run.id,
+      snapshot: history.at(-1)!,
+      history,
+      store: testContext.store,
+      config: CONFIG,
+    });
+    assert.equal(opened.action, 'OPEN_LONG');
+    const entryFill = opened.position!.entryFillPrice;
+
+    // turunkan harga (mirror dari uptrend) sampai sinyal SHORT muncul
+    let price = history.at(-1)!.price;
+    const extended = [...history];
+    let result: DirectionalLifecycleResult | null = null;
+    for (let index = 0; index < 18; index++) {
+      const change = index % 5 < 3 ? -0.003 : 0.002;
+      price *= 1 + change;
+      const next = snapshot(price, history.length + index);
+      extended.push(next);
+      result = processDirectionalSnapshot({
+        runId: run.id,
+        snapshot: next,
+        history: extended,
+        store: testContext.store,
+        config: CONFIG,
+      });
+      if (result.action === 'CLOSE') break;
+    }
+    assert.equal(result?.action, 'CLOSE');
+    assert.equal(result?.reasonCode, 'OPPOSING_SIGNAL');
+    // default: exit di harga pasar -> fill menyimpang jelas dari harga entry
+    assert.ok(Math.abs(result!.position!.exitFillPrice! - entryFill) > 0.005);
+    assert.ok((result!.position!.realizedPnlUsd ?? 0) < -0.3);
+  } finally {
+    testContext.store.close();
+    rmSync(testContext.directory, { recursive: true, force: true });
+  }
+});
+
+test('directional lifecycle closes an opposing signal at breakeven when configured', () => {
+  const testContext = context();
+  try {
+    const config: DirectionalStrategyConfig = { ...CONFIG, opposingExitAtBreakeven: true };
+    const history = longHistory();
+    const run = testContext.store.createRun({
+      mode: 'FORWARD',
+      startedAt: history[0]!.capturedAt,
+      config,
+      sourceLabel: 'test',
+    });
+    const opened = processDirectionalSnapshot({
+      runId: run.id,
+      snapshot: history.at(-1)!,
+      history,
+      store: testContext.store,
+      config,
+    });
+    assert.equal(opened.action, 'OPEN_LONG');
+    const entryFill = opened.position!.entryFillPrice;
+
+    let price = history.at(-1)!.price;
+    const extended = [...history];
+    let result: DirectionalLifecycleResult | null = null;
+    for (let index = 0; index < 18; index++) {
+      const change = index % 5 < 3 ? -0.003 : 0.002;
+      price *= 1 + change;
+      const next = snapshot(price, history.length + index);
+      extended.push(next);
+      result = processDirectionalSnapshot({
+        runId: run.id,
+        snapshot: next,
+        history: extended,
+        store: testContext.store,
+        config,
+      });
+      if (result.action === 'CLOSE') break;
+    }
+    assert.equal(result?.action, 'CLOSE');
+    assert.equal(result?.reasonCode, 'OPPOSING_SIGNAL');
+    assert.ok(result?.position);
+    // exit di breakeven: fill = entry * (1 - slippage 2bps), realized hanya fee + slippage
+    const expectedFill = entryFill * (1 - 2 / 10_000);
+    assert.ok(Math.abs(result.position.exitFillPrice! - expectedFill) < 1e-9);
+    const realized = result.position.realizedPnlUsd ?? 0;
+    assert.ok(realized < 0);
+    // kerugian hanya fee round-trip + slippage kecil (~$0.16), bukan kerugian pasar
+    assert.ok(realized > -0.3);
+    assert.ok(realized < -0.05);
   } finally {
     testContext.store.close();
     rmSync(testContext.directory, { recursive: true, force: true });

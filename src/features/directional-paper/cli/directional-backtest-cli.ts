@@ -13,8 +13,13 @@ function argument(args: readonly string[], name: string, fallback: number): numb
   return value;
 }
 
+function flag(args: readonly string[], name: string): boolean {
+  return args.includes(`--${name}`);
+}
+
 export function runDirectionalBacktestCli(args: readonly string[] = process.argv): void {
   const hours = argument(args, 'hours', 60 * 24);
+  const breakeven = flag(args, 'breakeven');
   const snapshotStore = new SnapshotStore();
   const directionalStore = new DirectionalPaperStore();
 
@@ -23,8 +28,11 @@ export function runDirectionalBacktestCli(args: readonly string[] = process.argv
     const performance = runDirectionalBacktest({
       snapshots,
       store: directionalStore,
-      config: { ...DEFAULT_DIRECTIONAL_CONFIG },
-      sourceLabel: `pool_snapshots_${hours}h_minute_close`,
+      config: {
+        ...DEFAULT_DIRECTIONAL_CONFIG,
+        opposingExitAtBreakeven: breakeven,
+      },
+      sourceLabel: `pool_snapshots_${hours}h_minute_close${breakeven ? '_breakeven' : ''}`,
     });
     console.log(
       JSON.stringify(

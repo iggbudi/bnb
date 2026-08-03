@@ -219,7 +219,7 @@ Script boot tersedia di `~/.termux/boot/start-bnb-viewer.sh`. Install **Termux:B
 - **Persistence:** Server menyimpan snapshot saat startup dan setiap menit, maksimal satu record per menit
 - **Paper agent:** Scheduler diperiksa setiap menit dan menyimpan maksimal satu sinyal full-range per jam (`lifecycle-v2.1`)
 - **Aggressive paper:** Ledger SQLite terpisah (`concentrated-aggressive-v1.0`) mengelola satu portfolio US$50 dan mengevaluasinya per jam dari state on-chain
-- **Directional paper:** Ledger `directional-momentum-v1.0` menjalankan backtest dan forward simulation per menit dengan long/short leverage 5×; jalankan replay manual memakai `npm run backtest:directional -- --hours=1440`
+- **Directional paper:** Ledger `directional-momentum-v1.0` menjalankan backtest dan forward simulation per menit dengan long/short leverage 5×; jalankan replay manual memakai `npm run backtest:directional -- --hours 1440` (opsional `--breakeven` untuk menutup posisi di harga entry saat sinyal lawan muncul)
 - **Position lifecycle:** Tahap G full-range control plane terpasang, tetapi runtime tetap SHADOW sampai Stage F qualified dan aktivasi paper-only disetujui eksplisit
 - **Outcome evaluator:** Memeriksa keputusan jatuh tempo setiap menit; fee counterfactual full-range dihitung dari delta `feeGrowthGlobal` V3 dan liquidity posisi antara checkpoint entry/target
 - **Learning engine:** Logistic regression tanpa framework eksternal, standardisasi train-only, purged expanding walk-forward validation, L2 regularization, dan model versioning SQLite

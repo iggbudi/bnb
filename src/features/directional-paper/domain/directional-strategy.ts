@@ -29,6 +29,8 @@ export interface DirectionalStrategyConfig {
   maximumHoldMinutes: number;
   cooldownMinutes: number;
   fundingRate8h: number;
+  /** Saat sinyal lawan muncul, tutup posisi di harga entry (breakeven) alih-alih harga pasar. */
+  opposingExitAtBreakeven: boolean;
 }
 
 export const DEFAULT_DIRECTIONAL_CONFIG: Readonly<DirectionalStrategyConfig> = {
@@ -57,6 +59,7 @@ export const DEFAULT_DIRECTIONAL_CONFIG: Readonly<DirectionalStrategyConfig> = {
   maximumHoldMinutes: 24 * 60,
   cooldownMinutes: 15,
   fundingRate8h: 0,
+  opposingExitAtBreakeven: false,
 };
 
 export interface DirectionalSignalFeatures {
