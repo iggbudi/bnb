@@ -22,7 +22,9 @@ fi
 termux-wake-lock 2>/dev/null || true
 
 printf '\n[%s] Building application\n' "$(date -Iseconds)" >> "$BUILD_LOG"
-npm run build >> "$BUILD_LOG" 2>&1
+# Panggil tsc langsung via node, bukan `npm` (shebang #!/usr/bin/env gagal di
+# environment boot Termux tanpa termux-exec/LD_PRELOAD).
+node "$APP_DIR/node_modules/typescript/bin/tsc" -p "$APP_DIR/tsconfig.json" >> "$BUILD_LOG" 2>&1
 
 release_revision="$(git rev-parse HEAD)"
 build_timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
