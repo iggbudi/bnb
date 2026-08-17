@@ -198,15 +198,18 @@ export function processDirectionalSnapshot(input: {
         trailingStopPrice: trailing.trailingStopPrice,
       });
 
-      const reasonCode = exitReason({
-        position,
-        markPrice,
-        signal,
-        trailingStopPrice: trailing.trailingStopPrice,
-        capturedAt,
-        config,
-        forceClose: input.forceClose ?? false,
-      });
+      const halted = config.maxDrawdownHaltPercent > 0 && maxDrawdownPercent >= config.maxDrawdownHaltPercent;
+      const reasonCode = halted
+        ? 'MAX_DRAWDOWN_HALT'
+        : exitReason({
+            position,
+            markPrice,
+            signal,
+            trailingStopPrice: trailing.trailingStopPrice,
+            capturedAt,
+            config,
+            forceClose: input.forceClose ?? false,
+          });
       if (reasonCode) {
         const exitMark = closeMarkForReason(position, markPrice, reasonCode, config);
         const fillPrice = exitFillPrice(position.side, exitMark, config.slippageBps);
@@ -268,6 +271,9 @@ export function processDirectionalSnapshot(input: {
             fundingRate8h: config.fundingRate8h,
           },
         });
+        if (reasonCode === 'MAX_DRAWDOWN_HALT') {
+          run = input.store.pauseRun(run.id, capturedAt);
+        }
         return { processed: true, action: 'CLOSE', reasonCode, run, position };
       }
 
@@ -326,12 +332,38 @@ export function processDirectionalSnapshot(input: {
       };
     }
 
+    const halted =
+      config.maxDrawdownHaltPercent > 0 && run.maxDrawdownPercent >= config.maxDrawdownHaltPercent;
+    if (halted) {
+      run = input.store.updateRunMark({
+        id: run.id,
+        realizedBalanceUsd: run.realizedBalanceUsd,
+        markEquityUsd: run.realizedBalanceUsd,
+        peakEquityUsd: Math.max(run.peakEquityUsd, run.realizedBalanceUsd),
+        maxDrawdownPercent: run.maxDrawdownPercent,
+        lastProcessedAt: capturedAt,
+      });
+      run = input.store.pauseRun(run.id, capturedAt);
+      input.store.saveDecision({
+        runId: run.id,
+        positionId: null,
+        capturedAt,
+        action: 'WAIT',
+        reasonCode: 'MAX_DRAWDOWN_HALT',
+        rationale: `Run dihentikan: max drawdown ${run.maxDrawdownPercent.toFixed(2)}% mencapai ambang ${config.maxDrawdownHaltPercent}%.`,
+        priceUsd: markPrice,
+        confidence: signal.confidence,
+        features: { ...signal.features },
+      });
+      return { processed: true, action: 'WAIT', reasonCode: 'MAX_DRAWDOWN_HALT', run, position: null };
+    }
+
     const latestClosed = input.store.getLatestClosedPosition(run.id);
     const cooldownRemainingMinutes = latestClosed?.closedAt
       ? config.cooldownMinutes - (Date.parse(capturedAt) - Date.parse(latestClosed.closedAt)) / 60_000
       : 0;
     const canEnter =
-      (signal.action === 'ENTER_LONG' || signal.action === 'ENTER_SHORT') &&
+      (signal.action === 'ENTER_LONG' || (signal.action === 'ENTER_SHORT' && config.shortEnabled)) &&
       cooldownRemainingMinutes <= 0 &&
       run.realizedBalanceUsd > 1;
 
@@ -341,7 +373,9 @@ export function processDirectionalSnapshot(input: {
           ? 'ENTRY_COOLDOWN'
           : run.realizedBalanceUsd <= 1
             ? 'CAPITAL_EXHAUSTED'
-            : signal.reasonCode;
+            : signal.action === 'ENTER_SHORT' && !config.shortEnabled
+              ? 'SHORT_DISABLED_BY_CONFIG'
+              : signal.reasonCode;
       run = input.store.updateRunMark({
         id: run.id,
         realizedBalanceUsd: run.realizedBalanceUsd,

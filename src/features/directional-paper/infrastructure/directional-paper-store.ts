@@ -378,6 +378,18 @@ export class DirectionalPaperStore {
     return this.getRun(id)!;
   }
 
+  /** Menghentikan run forward (circuit breaker / admin): tidak ada posisi/entry baru yang diproses. */
+  pauseRun(id: number, pausedAt: string): DirectionalPaperRun {
+    this.database
+      .prepare(
+        `UPDATE directional_paper_runs
+         SET status = 'PAUSED', ended_at = ?, last_processed_at = ?
+         WHERE id = ? AND status = 'ACTIVE'`
+      )
+      .run(pausedAt, pausedAt, id);
+    return this.getRun(id)!;
+  }
+
   hasDecision(runId: number, capturedAt: string): boolean {
     return Boolean(
       this.database

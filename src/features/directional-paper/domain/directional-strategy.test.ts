@@ -9,6 +9,7 @@ import {
   positionLevels,
   rawPositionPnl,
   type DirectionalStrategyConfig,
+  validateDirectionalConfig,
 } from './directional-strategy.js';
 
 const TEST_CONFIG: DirectionalStrategyConfig = {
@@ -37,6 +38,20 @@ test('directional strategy waits for enough minute history', () => {
   const signal = makeDirectionalSignal([100, 101], TEST_CONFIG);
   assert.equal(signal.action, 'WAIT');
   assert.equal(signal.reasonCode, 'HISTORY_INSUFFICIENT');
+});
+
+test('directional strategy validates the max drawdown halt threshold', () => {
+  assert.throws(
+    () => validateDirectionalConfig({ ...TEST_CONFIG, maxDrawdownHaltPercent: -1 }),
+    /max drawdown halt percent/
+  );
+  assert.doesNotThrow(() => validateDirectionalConfig({ ...TEST_CONFIG, maxDrawdownHaltPercent: 0 }));
+  assert.doesNotThrow(() => validateDirectionalConfig({ ...TEST_CONFIG, maxDrawdownHaltPercent: 25 }));
+});
+
+test('directional strategy defaults enable SHORT and disable the drawdown halt', () => {
+  assert.equal(DEFAULT_DIRECTIONAL_CONFIG.shortEnabled, true);
+  assert.equal(DEFAULT_DIRECTIONAL_CONFIG.maxDrawdownHaltPercent, 0);
 });
 
 test('directional strategy detects confirmed long and short momentum', () => {

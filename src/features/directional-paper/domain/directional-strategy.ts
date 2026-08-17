@@ -31,6 +31,10 @@ export interface DirectionalStrategyConfig {
   fundingRate8h: number;
   /** Saat sinyal lawan muncul, tutup posisi di harga entry (breakeven) alih-alih harga pasar. */
   opposingExitAtBreakeven: boolean;
+  /** True = posisi SHORT boleh dibuka; false = sinyal ENTER_SHORT ditolak (eksperimen long-only). */
+  shortEnabled: boolean;
+  /** Hentikan run (status PAUSED) bila max drawdown mencapai ambang ini; 0 = nonaktif. */
+  maxDrawdownHaltPercent: number;
 }
 
 export const DEFAULT_DIRECTIONAL_CONFIG: Readonly<DirectionalStrategyConfig> = {
@@ -60,6 +64,8 @@ export const DEFAULT_DIRECTIONAL_CONFIG: Readonly<DirectionalStrategyConfig> = {
   cooldownMinutes: 15,
   fundingRate8h: 0,
   opposingExitAtBreakeven: false,
+  shortEnabled: true,
+  maxDrawdownHaltPercent: 0,
 };
 
 export interface DirectionalSignalFeatures {
@@ -169,6 +175,9 @@ export function validateDirectionalConfig(config: DirectionalStrategyConfig): vo
   }
   if (config.minimumStopDistance > config.maximumStopDistance) {
     throw new Error('Directional minimum stop distance cannot exceed maximum');
+  }
+  if (!Number.isFinite(config.maxDrawdownHaltPercent) || config.maxDrawdownHaltPercent < 0) {
+    throw new Error('Directional max drawdown halt percent must be non-negative (0 disables)');
   }
   if (config.fastEmaPoints >= config.slowEmaPoints) {
     throw new Error('Directional fast EMA must be shorter than slow EMA');

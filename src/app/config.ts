@@ -19,6 +19,8 @@ export interface BnbAppConfig {
   aggressivePaperEnabled: boolean;
   directionalPaperEnabled: boolean;
   directionalOpposingBreakeven: boolean;
+  directionalShortEnabled: boolean;
+  directionalMaxDrawdownPercent: number;
   mintReceiptMinimumConfirmations: number;
   rpcHeavyConcurrency: number;
   apiRateLimitPerMinute: number;
@@ -57,6 +59,13 @@ export function loadBnbAppConfig(environment: NodeJS.ProcessEnv = process.env): 
     // Aktivasi exit OPPOSING_SIGNAL di breakeven untuk run forward (hasil
     // backtest varian fwdrun.md: kerugian turun ~60% tanpa mengurangi jumlah trade).
     directionalOpposingBreakeven: environment.DIRECTIONAL_OPPOSING_BREAKEVEN !== 'false',
+    // Eksperimen long-only: false menolak sinyal ENTER_SHORT (SHORT terbukti merugi di semua rezim).
+    directionalShortEnabled: environment.DIRECTIONAL_SHORT_ENABLED !== 'false',
+    // Circuit breaker: hentikan run (PAUSED) saat max drawdown mencapai ambang ini (0 = nonaktif).
+    directionalMaxDrawdownPercent: (() => {
+      const value = Number(environment.DIRECTIONAL_MAX_DRAWDOWN_PERCENT);
+      return Number.isFinite(value) && value >= 0 ? value : 25;
+    })(),
     mintReceiptMinimumConfirmations: Math.min(
       100,
       Math.max(1, Math.floor(positiveNumber(environment, 'MINT_RECEIPT_MIN_CONFIRMATIONS', 3)))

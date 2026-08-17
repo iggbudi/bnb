@@ -109,10 +109,12 @@ const AGGRESSIVE_PAPER_ENABLED = config.aggressivePaperEnabled;
 const DIRECTIONAL_PAPER_ENABLED = config.directionalPaperEnabled;
 const MINT_RECEIPT_MIN_CONFIRMATIONS = config.mintReceiptMinimumConfirmations;
 // Config directional untuk layanan forward; flag breakeven mengikuti kebijakan aplikasi
-// (DIRECTIONAL_OPPOSING_BREAKEVEN, default aktif).
+// (DIRECTIONAL_OPPOSING_BREAKEVEN, default aktif). Guardrail: max drawdown & long-only.
 const DIRECTIONAL_CONFIG = {
   ...DEFAULT_DIRECTIONAL_CONFIG,
   opposingExitAtBreakeven: config.directionalOpposingBreakeven,
+  shortEnabled: config.directionalShortEnabled,
+  maxDrawdownHaltPercent: config.directionalMaxDrawdownPercent,
 };
 const learningService = new LearningService({
   store: agentStore,

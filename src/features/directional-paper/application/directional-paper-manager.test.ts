@@ -62,6 +62,15 @@ function longHistory(count = 38): PoolSnapshot[] {
   });
 }
 
+function downHistory(count = 38): PoolSnapshot[] {
+  let price = 100;
+  return Array.from({ length: count }, (_, index) => {
+    const change = index % 5 < 3 ? -0.002 : 0.0015;
+    price *= 1 + change;
+    return snapshot(price, index);
+  });
+}
+
 function context() {
   const directory = mkdtempSync(join(tmpdir(), 'bnb-directional-'));
   return {
@@ -284,6 +293,89 @@ test('forward cycle reconciles the active run config when the service config cha
     assert.equal(stored.sourceLabel, 'test'); // run yang sama, tidak dibuat ulang
   } finally {
     snapshotStore.close();
+    testContext.store.close();
+    rmSync(testContext.directory, { recursive: true, force: true });
+  }
+});
+
+test('directional lifecycle halts the run at the max drawdown circuit breaker', () => {
+  const testContext = context();
+  try {
+    const config: DirectionalStrategyConfig = { ...CONFIG, maxDrawdownHaltPercent: 2 };
+    const history = longHistory();
+    const run = testContext.store.createRun({
+      mode: 'FORWARD',
+      startedAt: history[0]!.capturedAt,
+      config,
+      sourceLabel: 'test',
+    });
+    const opened = processDirectionalSnapshot({
+      runId: run.id,
+      snapshot: history.at(-1)!,
+      history,
+      store: testContext.store,
+      config,
+    });
+    assert.equal(opened.action, 'OPEN_LONG');
+
+    // Turunkan harga 1% -> equity turun ~2.8% (notional 5x), melewati ambang 2%
+    // namun belum menyentuh SL (~1.6% jarak) -> circuit breaker harus memotong.
+    const haltSnapshot = snapshot(history.at(-1)!.price * 0.99, history.length);
+    const halted = processDirectionalSnapshot({
+      runId: run.id,
+      snapshot: haltSnapshot,
+      history: [...history, haltSnapshot],
+      store: testContext.store,
+      config,
+    });
+    assert.equal(halted.action, 'CLOSE');
+    assert.equal(halted.reasonCode, 'MAX_DRAWDOWN_HALT');
+    assert.equal(halted.position?.status, 'CLOSED');
+    assert.equal(halted.run.status, 'PAUSED');
+
+    // Run yang sudah PAUSED menolak snapshot berikutnya.
+    assert.throws(
+      () =>
+        processDirectionalSnapshot({
+          runId: run.id,
+          snapshot: haltSnapshot,
+          history: [...history, haltSnapshot],
+          store: testContext.store,
+          config,
+        }),
+      /not active/
+    );
+  } finally {
+    testContext.store.close();
+    rmSync(testContext.directory, { recursive: true, force: true });
+  }
+});
+
+test('directional lifecycle rejects SHORT entries when shortEnabled is false', () => {
+  const testContext = context();
+  try {
+    const config: DirectionalStrategyConfig = { ...CONFIG, shortEnabled: false };
+    const history = downHistory();
+    const run = testContext.store.createRun({
+      mode: 'FORWARD',
+      startedAt: history[0]!.capturedAt,
+      config,
+      sourceLabel: 'test',
+    });
+    const result = processDirectionalSnapshot({
+      runId: run.id,
+      snapshot: history.at(-1)!,
+      history,
+      store: testContext.store,
+      config,
+    });
+    assert.equal(result.action, 'WAIT');
+    assert.equal(result.reasonCode, 'SHORT_DISABLED_BY_CONFIG');
+    assert.equal(result.position, null);
+    assert.equal(testContext.store.getOpenPosition(run.id), null);
+    const decisions = testContext.store.getRecentDecisions(run.id, 10);
+    assert.ok(decisions.every(decision => decision.action !== 'OPEN_SHORT'));
+  } finally {
     testContext.store.close();
     rmSync(testContext.directory, { recursive: true, force: true });
   }

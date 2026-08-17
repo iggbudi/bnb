@@ -13,6 +13,8 @@ test('application config preserves runtime defaults in one composition module', 
   assert.equal(config.aggressivePaperEnabled, true);
   assert.equal(config.directionalPaperEnabled, true);
   assert.equal(config.directionalOpposingBreakeven, true);
+  assert.equal(config.directionalShortEnabled, true);
+  assert.equal(config.directionalMaxDrawdownPercent, 25);
   assert.equal(config.mintReceiptMinimumConfirmations, 3);
   assert.equal(config.shutdownTimeoutMs, 15_000);
   assert.deepEqual([...config.corsAllowedOrigins], ['http://127.0.0.1:3000', 'http://localhost:3000']);
@@ -27,6 +29,8 @@ test('application config validates numeric limits and explicit feature flags', (
     AGGRESSIVE_PAPER_ENABLED: 'false',
     DIRECTIONAL_PAPER_ENABLED: 'false',
     DIRECTIONAL_OPPOSING_BREAKEVEN: 'false',
+    DIRECTIONAL_SHORT_ENABLED: 'false',
+    DIRECTIONAL_MAX_DRAWDOWN_PERCENT: '10',
     MINT_RECEIPT_MIN_CONFIRMATIONS: '1000',
     RPC_HEAVY_CONCURRENCY: '-1',
     SHUTDOWN_TIMEOUT_MS: '2500.9',
@@ -40,6 +44,8 @@ test('application config validates numeric limits and explicit feature flags', (
   assert.equal(config.aggressivePaperEnabled, false);
   assert.equal(config.directionalPaperEnabled, false);
   assert.equal(config.directionalOpposingBreakeven, false);
+  assert.equal(config.directionalShortEnabled, false);
+  assert.equal(config.directionalMaxDrawdownPercent, 10);
   assert.equal(config.mintReceiptMinimumConfirmations, 100);
   assert.equal(config.rpcHeavyConcurrency, 2);
   assert.equal(config.shutdownTimeoutMs, 2500);

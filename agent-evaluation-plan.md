@@ -26,32 +26,27 @@
 
 ---
 
-## Fase 0 — Guardrail Darurat (segera, hari ini)
+## Fase 0 — Guardrail Darurat ✅ SELESAI (commit Fase 0)
 
 **Tujuan**: hentikan akumulasi kerugian paper dan cegah kerugian lebih jauh.
 
-### 0.1 Pause run directional forward
-- Set `DIRECTIONAL_PAPER_ENABLED=false` di `.env`, restart service (script `background:stop`/`background:start`).
-- Run 2 tidak dihapus; `status` tetap ACTIVE di DB, hanya tidak diproses. Bisa resume kapan saja.
-- **Alternatif** (jika ingin tetap mengumpulkan data): buat run baru dengan modal $50, tetap aktif —
-  keputusan user. Rekomendasi: pause total sampai Fase 1 siap.
+### 0.1 Pause run directional forward ✅
+- `DIRECTIONAL_PAPER_ENABLED=false` di `.env` (dengan catatan alasan), service perlu restart.
+- Run 2 tidak dihapus; status tetap ACTIVE di DB, hanya tidak diproses. Bisa resume kapan saja.
 
-### 0.2 Circuit breaker drawdown (guardrail permanen)
-- **File**: `src/features/directional-paper/domain/directional-strategy.ts` (config),
-  `src/features/directional-paper/application/directional-paper-manager.ts` (logika),
-  `src/features/directional-paper/infrastructure/directional-paper-store.ts` (status run).
-- Config baru `directionalMaxDrawdownPercent` (default `25`, `0` = nonaktif) + flag `directionalShortEnabled` (default `true`).
+### 0.2 Circuit breaker drawdown ✅
+- **File**: `directional-strategy.ts` (config `maxDrawdownHaltPercent` default 0, `shortEnabled` default true),
+  `directional-paper-manager.ts` (logika), `directional-paper-store.ts` (`pauseRun` → status `PAUSED`).
+- **Catatan**: status `PAUSED` sudah ada di schema (tidak perlu migration); `idx_directional_one_active_forward`
+  hanya mengunci satu run FORWARD ACTIVE sehingga run baru bisa dibuat setelah pause.
 - Logika di `processDirectionalSnapshot`:
   - Bila `maxDrawdownPercent ≥ ambang`: tutup posisi terbuka di mark (reason `MAX_DRAWDOWN_HALT`),
-    tandai run `HALTED`, hentikan entry baru.
-  - Bila `directionalShortEnabled=false`: `ENTER_SHORT` → `WAIT` dengan reason `SHORT_DISABLED_BY_CONFIG`.
-- Status enum run: `ACTIVE | COMPLETED | HALTED` (migration schema + store).
-- **Tes** (manager.test.ts): (a) di bawah ambang → normal; (b) tepat di ambang → halt; (c) short
-  disabled → tidak pernah OPEN_SHORT; (d) run HALTED menolak snapshot berikutnya.
-- **Konteks rekonsiliasi**: `updateRunConfig` di `runDirectionalForwardCycle` sudah menyelaraskan config
-  ke run aktif — pastikan 2 flag baru ikut terselaras (pakai mekanisme yang sama dengan `opposingExitAtBreakeven`).
+    tandai run `PAUSED`, hentikan entry baru.
+  - Bila `shortEnabled=false`: `ENTER_SHORT` → `WAIT` dengan reason `SHORT_DISABLED_BY_CONFIG`.
+- Env baru: `DIRECTIONAL_MAX_DRAWDOWN_PERCENT` (default 25, 0=nonaktif), `DIRECTIONAL_SHORT_ENABLED` (default true).
+- **Tes**: 4 baru (config x2, strategy validation, manager: halt + short-disabled) — total suite 191 hijau, lint/build bersih.
 
-### 0.3 Dokumentasi & commit
+### 0.3 Dokumentasi & commit ✅
 - Update `agent-evaluation.md` (status), `fwdrun.md` (hasil fase breakeven), README/WIKI (config baru),
   plan ini. Commit + push.
 

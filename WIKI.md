@@ -144,8 +144,21 @@ CORS_ALLOWED_ORIGINS=http://127.0.0.1:3001,http://localhost:3001
 TRUST_PROXY=false
 AGGRESSIVE_PAPER_ENABLED=true
 DIRECTIONAL_PAPER_ENABLED=true
+DIRECTIONAL_OPPOSING_BREAKEVEN=true
+DIRECTIONAL_SHORT_ENABLED=true
+DIRECTIONAL_MAX_DRAWDOWN_PERCENT=25
 LIVE_EXECUTION_ENABLED=false
 ```
+
+Catatan guardrail directional (Fase 0, 17 Agu 2026):
+
+- `DIRECTIONAL_OPPOSING_BREAKEVEN` (default `true`): exit sinyal lawan di harga entry (breakeven)
+  — hasil backtest varian memangkas kerugian whipsaw ~60% tanpa mengurangi jumlah trade.
+- `DIRECTIONAL_SHORT_ENABLED` (default `true`): `false` menolak sinyal `ENTER_SHORT` (eksperimen
+  long-only; SHORT merugi di semua rezim yang diuji per 17 Agu).
+- `DIRECTIONAL_MAX_DRAWDOWN_PERCENT` (default `25`, `0` = nonaktif): circuit breaker — run dihentikan
+  (status `PAUSED`, reason `MAX_DRAWDOWN_HALT`) saat max drawdown mencapai ambang. Run forward lama
+  di-pause via `DIRECTIONAL_PAPER_ENABLED=false` pada 17 Agu 2026 (ekuitas −28,6%, maxDD 30%).
 
 `OPENAI_API_KEY` boleh kosong. Fitur live data, SQLite, simulator, dan IL tetap berfungsi tanpa OpenAI.
 
