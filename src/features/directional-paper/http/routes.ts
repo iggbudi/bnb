@@ -15,6 +15,7 @@ export interface DirectionalPaperRouteDependencies {
     | 'getPosition'
     | 'getFills'
     | 'getRecentEvaluations'
+    | 'getEquityCurve'
   >;
   enabled: boolean;
   strategyVersion: string;
@@ -62,6 +63,7 @@ export function buildDirectionalPaperStatus(
     recentRuns: store.getRecentRuns(20),
     recentPositions: selectedRun ? store.getRecentPositions(selectedRun.id, 20) : [],
     recentDecisions: selectedRun ? store.getRecentDecisions(selectedRun.id, 100) : [],
+    equityCurve: forwardRun ? store.getEquityCurve(forwardRun.id, 30) : [],
   };
 }
 

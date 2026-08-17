@@ -95,6 +95,7 @@ export interface AggressivePaperPerformance {
   portfolioValueUsd: number;
   portfolioPnlUsd: number;
   portfolioReturnPercent: number;
+  annualizedReturnPercent: number | null;
   realizedPnlUsd: number;
   unrealizedPnlUsd: number;
   totalFeesUsd: number;

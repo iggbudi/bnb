@@ -109,6 +109,12 @@ export interface DirectionalRunPerformance {
   totalRealizedPnlUsd: number;
   totalFeesUsd: number;
   totalFundingUsd: number;
+  totalWinningPnlUsd: number;
+  totalLosingPnlUsd: number;
+  avgWinUsd: number | null;
+  avgLossUsd: number | null;
+  expectedValuePerTradeUsd: number | null;
+  avgHoldHours: number | null;
 }
 
 export function createDirectionalPaperSchema(database: DatabaseSync): void {
@@ -655,6 +661,9 @@ export class DirectionalPaperStore {
           COALESCE(SUM(CASE WHEN status = 'CLOSED' AND realized_pnl_usd > 0 THEN 1 ELSE 0 END), 0) AS wins,
           COALESCE(SUM(CASE WHEN status = 'CLOSED' AND realized_pnl_usd <= 0 THEN 1 ELSE 0 END), 0) AS losses,
           COALESCE(SUM(CASE WHEN status = 'CLOSED' THEN realized_pnl_usd ELSE 0 END), 0) AS realized_pnl,
+          COALESCE(SUM(CASE WHEN status = 'CLOSED' AND realized_pnl_usd > 0 THEN realized_pnl_usd ELSE 0 END), 0) AS win_pnl,
+          COALESCE(SUM(CASE WHEN status = 'CLOSED' AND realized_pnl_usd <= 0 THEN realized_pnl_usd ELSE 0 END), 0) AS loss_pnl,
+          COALESCE(AVG(CASE WHEN status = 'CLOSED' THEN (julianday(closed_at) - julianday(opened_at)) * 24 ELSE NULL END), 0) AS avg_hold_hours,
           COALESCE(SUM(entry_fee_usd + exit_fee_usd), 0) AS fees,
           COALESCE(SUM(funding_payment_usd), 0) AS funding
         FROM directional_paper_positions
@@ -668,6 +677,9 @@ export class DirectionalPaperStore {
       : this.latestEvaluationForRun(runId);
     const completedPositions = Number(aggregate.completed);
     const winningPositions = Number(aggregate.wins);
+    const totalRealizedPnlUsd = Number(aggregate.realized_pnl);
+    const totalWinningPnlUsd = Number(aggregate.win_pnl);
+    const totalLosingPnlUsd = Number(aggregate.loss_pnl);
     return {
       run,
       activePosition,
@@ -677,10 +689,54 @@ export class DirectionalPaperStore {
       winningPositions,
       losingPositions: Number(aggregate.losses),
       winRatePercent: completedPositions > 0 ? (winningPositions / completedPositions) * 100 : null,
-      totalRealizedPnlUsd: Number(aggregate.realized_pnl),
+      totalRealizedPnlUsd,
       totalFeesUsd: Number(aggregate.fees),
       totalFundingUsd: Number(aggregate.funding),
+      totalWinningPnlUsd,
+      totalLosingPnlUsd,
+      avgWinUsd: winningPositions > 0 ? totalWinningPnlUsd / winningPositions : null,
+      avgLossUsd: Number(aggregate.losses) > 0 ? totalLosingPnlUsd / Number(aggregate.losses) : null,
+      expectedValuePerTradeUsd: completedPositions > 0 ? totalRealizedPnlUsd / completedPositions : null,
+      avgHoldHours: Number(aggregate.avg_hold_hours),
     };
+  }
+
+  /**
+   * Kurva ekuitas harian (mark-to-market saat posisi terbuka) untuk run.
+   * Semantik jujur: evaluasi hanya dicatat selama posisi terbuka, jadi hari
+   * tanpa posisi tidak muncul di kurva.
+   */
+  getEquityCurve(
+    runId: number,
+    maxDays = 30
+  ): Array<{ date: string; equityUsd: number; priceUsd: number | null }> {
+    const rows = this.database
+      .prepare(
+        `WITH daily AS (
+          SELECT date(e.evaluated_at) AS day,
+                 MAX(e.account_equity_usd) AS equity,
+                 MAX(e.evaluated_at) AS last_at
+          FROM directional_paper_evaluations e
+          JOIN directional_paper_positions p ON p.id = e.position_id
+          WHERE p.run_id = ?
+          GROUP BY day
+        )
+        SELECT daily.day AS day, ROUND(daily.equity, 2) AS equity,
+          (SELECT e2.mark_price_usd FROM directional_paper_evaluations e2
+            JOIN directional_paper_positions p2 ON p2.id = e2.position_id
+            WHERE p2.run_id = ? AND e2.evaluated_at = daily.last_at) AS price
+        FROM daily
+        ORDER BY daily.day DESC
+        LIMIT ?`
+      )
+      .all(runId, runId, maxDays) as Array<Record<string, number | string | null>>;
+    return rows
+      .map(row => ({
+        date: String(row.day),
+        equityUsd: Number(row.equity),
+        priceUsd: row.price === null ? null : Number(row.price),
+      }))
+      .reverse();
   }
 
   close(): void {

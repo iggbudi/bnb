@@ -202,11 +202,17 @@ export class AggressivePerformanceRepository extends AggressivePositionRepositor
       executionAuthority: false,
     };
 
+    const annualizedReturnPercent =
+      observedCalendarDays > 0 && portfolioValueUsd > 0
+        ? (Math.pow(portfolioValueUsd / initialCapitalUsd, 365 / observedCalendarDays) - 1) * 100
+        : null;
+
     return {
       initialCapitalUsd,
       portfolioValueUsd,
       portfolioPnlUsd: portfolioValueUsd - initialCapitalUsd,
       portfolioReturnPercent: (portfolioValueUsd / initialCapitalUsd - 1) * 100,
+      annualizedReturnPercent,
       realizedPnlUsd,
       unrealizedPnlUsd,
       totalFeesUsd: positions.reduce((sum, position) => sum + position.accumulatedFeeUsd, 0),

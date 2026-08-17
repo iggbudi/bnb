@@ -151,6 +151,10 @@ window.BnbDashboard.aggressivePaper = (() => {
                 <div class="metric-value ${aggressivePerformance.portfolioPnlUsd >= 0 ? 'positive' : 'negative'}">${formatSignedUSD(aggressivePerformance.portfolioPnlUsd)} (${aggressivePerformance.portfolioReturnPercent.toFixed(2)}%)</div>
               </div>
               <div class="metric">
+                <div class="metric-label">Return Tahunan (Annualized)</div>
+                <div class="metric-value ${(aggressivePerformance.annualizedReturnPercent ?? 0) >= 0 ? 'positive' : 'negative'}">${aggressivePerformance.annualizedReturnPercent === null ? 'N/A' : `${aggressivePerformance.annualizedReturnPercent.toFixed(2)}%`}</div>
+              </div>
+              <div class="metric">
                 <div class="metric-label">Fee Paper Teramati On-chain</div>
                 <div class="metric-value positive">${formatPreciseUSD(aggressivePerformance.totalFeesUsd)}</div>
               </div>

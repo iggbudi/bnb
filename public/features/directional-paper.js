@@ -22,6 +22,48 @@ window.BnbDashboard.directionalPaper = (() => {
     return `<span class="outcome-badge ${classification}">${escapeHTML(action.replaceAll('_', ' '))}</span>`;
   }
 
+  // SVG mini-chart dua seri (ekuitas & harga) dinormalisasi ke rentangnya masing-masing.
+  function equityCurveSvg(curve) {
+    if (!curve || curve.length < 2) return null;
+    const width = 760;
+    const height = 180;
+    const padX = 8;
+    const padY = 16;
+    const equities = curve.map(point => point.equityUsd);
+    const prices = curve.map(point => point.priceUsd).filter(value => value !== null);
+    const eqMin = Math.min(...equities);
+    const eqMax = Math.max(...equities);
+    const eqRange = eqMax - eqMin || 1;
+    const prMin = prices.length ? Math.min(...prices) : 0;
+    const prMax = prices.length ? Math.max(...prices) : 1;
+    const prRange = prMax - prMin || 1;
+    const x = index => padX + (index / (curve.length - 1)) * (width - padX * 2);
+    const yEq = value => height - padY - ((value - eqMin) / eqRange) * (height - padY * 2);
+    const yPr = value => height - padY - ((value - prMin) / prRange) * (height - padY * 2);
+    const eqLine = curve
+      .map((point, index) => `${x(index).toFixed(1)},${yEq(point.equityUsd).toFixed(1)}`)
+      .join(' ');
+    const prLine = curve
+      .map((point, index) =>
+        point.priceUsd === null ? null : `${x(index).toFixed(1)},${yPr(point.priceUsd).toFixed(1)}`
+      )
+      .filter(Boolean)
+      .join(' ');
+    const last = curve.at(-1);
+    return `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Kurva ekuitas dan harga forward" style="width:100%;height:auto;background:var(--surface,#101418);border-radius:10px;">
+        <polyline points="${eqLine}" fill="none" stroke="var(--positive,#2bd576)" stroke-width="2" />
+        ${prLine ? `<polyline points="${prLine}" fill="none" stroke="var(--accent,#f0b90b)" stroke-width="1.5" stroke-dasharray="4 3" />` : ''}
+        <line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="#333" stroke-width="1" />
+        <circle cx="${x(curve.length - 1).toFixed(1)}" cy="${yEq(last.equityUsd).toFixed(1)}" r="3" fill="var(--positive,#2bd576)" />
+      </svg>
+      <div class="metric-label" style="margin-top:8px;">
+        <span style="color:var(--positive,#2bd576);">▬ Ekuitas</span> ·
+        <span style="color:var(--accent,#f0b90b);">┅ Harga</span> ·
+        nilai dinormalisasi 0–100%; <span class="negative">ekuitas akhir $${last.equityUsd.toFixed(2)}</span>
+      </div>`;
+  }
+
   async function loadDirectionalDashboard() {
     const target = document.getElementById('directionalDashboard');
     if (!target) return;
@@ -107,9 +149,21 @@ window.BnbDashboard.directionalPaper = (() => {
           <div class="metric"><div class="metric-label">Posisi Selesai</div><div class="metric-value">${forward?.completedPositions ?? 0}</div></div>
           <div class="metric"><div class="metric-label">Win Rate</div><div class="metric-value">${forward?.winRatePercent === null || forward?.winRatePercent === undefined ? 'N/A' : `${forward.winRatePercent.toFixed(1)}%`}</div></div>
           <div class="metric"><div class="metric-label">Total Fee</div><div class="metric-value negative">${forward ? formatPreciseUSD(forward.totalFeesUsd) : 'N/A'}</div></div>
+          <div class="metric"><div class="metric-label">Avg Win / Avg Loss</div><div class="metric-value" style="font-size: 0.95rem;"><span class="positive">${forward?.avgWinUsd === null || forward?.avgWinUsd === undefined ? 'N/A' : formatSignedUSD(forward.avgWinUsd)}</span> / <span class="negative">${forward?.avgLossUsd === null || forward?.avgLossUsd === undefined ? 'N/A' : formatSignedUSD(forward.avgLossUsd)}</span></div></div>
+          <div class="metric"><div class="metric-label">EV per Trade (net)</div><div class="metric-value ${(forward?.expectedValuePerTradeUsd ?? 0) >= 0 ? 'positive' : 'negative'}">${forward?.expectedValuePerTradeUsd === null || forward?.expectedValuePerTradeUsd === undefined ? 'N/A' : formatSignedUSD(forward.expectedValuePerTradeUsd)}</div></div>
+          <div class="metric"><div class="metric-label">Avg Hold</div><div class="metric-value">${forward?.avgHoldHours === null || forward?.avgHoldHours === undefined ? 'N/A' : `${forward.avgHoldHours.toFixed(1)} jam`}</div></div>
           <div class="metric"><div class="metric-label">Aksi Terakhir</div><div class="metric-value" style="font-size: 1rem;">${escapeHTML(latest?.action ?? 'N/A')}</div></div>
           <div class="metric"><div class="metric-label">Diproses Sampai</div><div class="metric-value" style="font-size: 1rem;">${escapeHTML(formatAgentTime(run?.lastProcessedAt))}</div></div>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="agent-heading">
+          <h3>Kurva Ekuitas Forward vs Harga</h3>
+          <span class="outcome-badge ${forward?.expectedValuePerTradeUsd !== null && (forward?.expectedValuePerTradeUsd ?? 0) >= 0 ? 'outcome-correct' : 'outcome-wrong'}">EV ${forward?.expectedValuePerTradeUsd === null || forward?.expectedValuePerTradeUsd === undefined ? 'N/A' : formatSignedUSD(forward.expectedValuePerTradeUsd)}/trade</span>
+        </div>
+        ${equityCurveSvg(data.equityCurve ?? []) ?? '<div class="info-box">Belum ada data evaluasi mark-to-market untuk kurva ekuitas.</div>'}
+        <div class="metric-label" style="margin-top:8px;">Mark-to-market hanya dicatat selama posisi terbuka; hari tanpa posisi tidak muncul. Equity dan harga dinormalisasi ke rentangnya masing-masing.</div>
       </div>
 
       <div class="card">

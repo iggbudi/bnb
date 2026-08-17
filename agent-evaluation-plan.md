@@ -159,13 +159,24 @@ Tidak mem-block Fase 1–2; hasil Fase 1 harus divalidasi ulang setelah 3.1–3.
 
 ---
 
-## Fase 4 — Ops & Dashboard
+## Fase 4 — Ops & Dashboard ✅ SELESAI (commit Fase 4)
 
-- **4.1** Metrik evaluasi agent di halaman web (Position/Perp Paper): win rate, avg win/loss,
-  fee kumulatif, EV per trade, equity curve vs price — agar keputusan lanjut/henti berbasis data.
-- **4.2** Aggressive: tambah annualized return & Sharpe; tetap benchmark defensif (tanpa aksi).
-- **4.3** README/WIKI: dokumen status ketiga sistem + guardrail baru + batasan feed.
-- **4.4** Kill switch tetap LOCKED; audit log `execution_audit` tidak berubah.
+- **4.1** Metrik evaluasi directional di halaman Perp Paper: **Avg Win / Avg Loss, EV per trade
+  (net), Avg Hold, Total Fee** ditambahkan ke kartu Forward; kartu baru **Kurva Ekuitas vs Harga**
+  (SVG dua seri dinormalisasi, harian saat posisi terbuka — semantik jujur). Backend:
+  `getPerformance` diperluas (`totalWinningPnlUsd`, `totalLosingPnlUsd`, `avgWinUsd`, `avgLossUsd`,
+  `expectedValuePerTradeUsd`, `avgHoldHours`) + `getEquityCurve(runId, 30)` di store; status API
+  menambah `equityCurve`. Contoh nilai nyata run 2: avgWin +$0,61, avgLoss −$0,30,
+  EV −$0,12/trade, avgHold 3,7 jam.
+- **4.2** Aggressive: `annualizedReturnPercent` ditambahkan (portfolio return di-annualisasi dgn
+  hari kalender teramati) + kartu metrik di halaman; nilai nyata **+12,9%** (total +0,94%/29 hari,
+  sampel 7 posisi — tetap benchmark defensif, bukan sinyal live).
+- **4.3** README/WIKI sudah sinkron (guardrail env + catatan directional di WIKI; plan ini
+  mencatat status ketiga sistem).
+- **4.4** Kill switch tetap LOCKED; `execution_audit` tidak berubah.
+
+**Fase 3 (feed high/low + funding perp) belum dikerjakan** — scope besar, butuh keputusan sumber
+data eksternal (mis. Binance klines/futures API) dan tidak mem-block Fase 0–2 & 4.
 
 ---
 
@@ -184,6 +195,7 @@ Fase 0 (guardrail + pause)  ──►  Fase 1 (v1.1 backtest) → GATE REJECTED,
 1. ✅ Tidak ada lagi kerugian paper yang berjalan tanpa guardrail (circuit breaker aktif).
 2. ✅ Eksperimen directional berikutnya divalidasi walk-forward dua window dgn kriteria tertulis —
    **v1.1 REJECTED, tidak diluncurkan**; keluarga v1.0 ditutup, menunggu Fase 3 + sinyal baru.
+   Fase 4 menyediakan metrik evaluasi (avg win/loss, EV, kurva ekuitas) di dashboard.
 3. ✅ Learning punya label yang bisa dipelajari (gross + biaya di inferensi) dan gate
    proporsional — **walk-forward menolak model dgn alasan terdokumentasi (fitur belum cukup,
    accuracy 40,1% < baseline 59,2%)**; metrik kelas (positiveRate) terlihat di status.
