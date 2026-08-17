@@ -45,7 +45,11 @@ const baseline: PaperAgentDecisionInput = {
   predictedFee24h: 0.1,
   predictedIL24h: 0.05,
   predictedExcessVsHold24h: 0.05,
-  features: examples(2)[1]!.features,
+  features: {
+    ...examples(2)[1]!.features,
+    predictedNetEdge7d: 0.05,
+    predictedLifecycleCostUsd: 0.02,
+  },
 };
 
 test('requires at least 336 seven-day verdict examples', () => {
@@ -87,4 +91,54 @@ test('active model changes soft baseline decisions but preserves hard safety gat
   );
   assert.equal(protectedEconomics.strategyVersion, 'baseline-v1.0');
   assert.equal(protectedEconomics.action, 'WAIT');
+});
+
+test('inference applies the lifecycle cost gate: no entry when net edge is below minimum', () => {
+  const candidate = trainWalkForwardCandidate(examples(400));
+  assert.ok(candidate);
+
+  // Probabilitas tinggi (fitur positif) tetapi net edge tidak menutup biaya -> WAIT.
+  const expensive = applyLearningModel(
+    { ...baseline, features: { ...baseline.features, predictedNetEdge7d: -0.02 } },
+    'logistic-v1',
+    candidate.model
+  );
+  assert.equal(expensive.action, 'WAIT');
+  assert.equal(expensive.reasonCode, 'LEARNING_MODEL_WAIT');
+  assert.ok(String(expensive.rationale).includes('tidak menutup biaya lifecycle'));
+
+  // Net edge cukup -> ENTER.
+  const affordable = applyLearningModel(
+    { ...baseline, features: { ...baseline.features, predictedNetEdge7d: 0.05 } },
+    'logistic-v1',
+    candidate.model
+  );
+  assert.equal(affordable.action, 'ENTER_FULL_RANGE');
+  assert.equal(affordable.reasonCode, 'LEARNING_MODEL_ENTER');
+  assert.equal(affordable.features.learningNetEdgeUsd, 0.05);
+});
+
+test('class diversity gate scales with sample size and reports positive rate', () => {
+  // 400 sampel, 1% positif (4) -> minClass = max(10, 8) = 10 > 4 -> ditolak.
+  const sparse = examples(400).map((example, index) => ({
+    ...example,
+    label: index < 4 ? (1 as const) : (0 as const),
+  }));
+  const sparseCandidate = trainWalkForwardCandidate(sparse);
+  assert.ok(sparseCandidate);
+  assert.equal(sparseCandidate.eligibleForActivation, false);
+  assert.equal(sparseCandidate.gateReason, 'INSUFFICIENT_CLASS_DIVERSITY');
+  assert.equal(sparseCandidate.metrics.positiveRate, 0.01);
+
+  // 400 sampel, 3% positif (12) -> minClass = 10 <= 12 -> keragaman lolos.
+  const diverse = examples(400).map((example, index) => ({
+    ...example,
+    label: index % 33 === 0 ? (1 as const) : (0 as const),
+  }));
+  const diverseCandidate = trainWalkForwardCandidate(diverse);
+  assert.ok(diverseCandidate);
+  assert.ok(diverseCandidate.metrics.positiveRows >= 10);
+  // Gate keragaman lolos (alasan bukan lagi INSUFFICIENT_CLASS_DIVERSITY);
+  // akurasi walk-forward pada fitur acak boleh tetap gagal -> NOT_PASSED.
+  assert.notEqual(diverseCandidate.gateReason, 'INSUFFICIENT_CLASS_DIVERSITY');
 });

@@ -49,10 +49,16 @@ Kesimpulan sementara: sinyal entry model penuh-range selama ini **selalu positif
 (31) dan tanpa model terlatih** — evidence resmi tetap `INSUFFICIENT_SAMPLE` sampai ≥30 posisi selesai
 dan ≥30 hari kalender.
 
-### 2.4 Status learning
+### 2.4 Status learning (per 3 Agu) → diperbarui Fase 2 (17 Agu)
 - Sampel terlabel masih **sebagian kecil** dari target (fase `COLLECTING_DATA`) — model logistic
   regression belum pernah lolos gate pelatihan (`paper_agent_models` kosong).
 - Assessment outcome: 764 `CORRECT`, 486 `ABSTAINED_SAFETY`, 124 `INCORRECT`, 3 `SKIPPED_DATA_GAP`.
+- **Perbaikan Fase 2 (17 Agu, lihat `agent-evaluation-plan.md`)**: label training diubah dari
+  edge *ekonomis* (selalu negatif di skala $100 → 0/391 positif) menjadi edge *bruto*
+  (159/391 = 40,7% positif); gate kelas proporsional `max(10, 2% sampel)`; inferensi menerapkan
+  biaya lifecycle (net edge ≥ $0,01). Hasil validasi: gate keragaman lolos, namun walk-forward
+  menolak model (accuracy 40,1% < baseline 59,2%) — fitur belum memprediksi edge bruto; pipeline
+  kini menolak dengan alasan dan metrik yang terdokumentasi.
 
 ---
 

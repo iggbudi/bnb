@@ -44,6 +44,7 @@ export interface WalkForwardMetrics {
   brierScore: number;
   positiveRows: number;
   negativeRows: number;
+  positiveRate: number;
 }
 
 export interface LearningCandidate {
@@ -55,8 +56,22 @@ export interface LearningCandidate {
 
 export const MIN_TRAINING_ROWS = 336;
 export const RETRAIN_EVERY_NEW_OUTCOMES = 24;
-const MIN_CLASS_ROWS = 10;
 const DECISION_THRESHOLD = 0.55;
+
+// Mirror nilai paper-agent/domain/outcome-assessment.ts (MINIMUM_ACTIONABLE_EDGE_USD = 0.01).
+// Tidak diimpor sebagai value karena paper-agent -> learning adalah runtime edge;
+// edge learning -> paper-agent harus tetap type-only agar graf dependensi runtime
+// tetap asiklik (ditegakkan di src/architecture.test.ts).
+const MINIMUM_ACTIONABLE_EDGE_USD = 0.01;
+
+/**
+ * Jumlah minimal contoh per kelas agar gate keragaman lolos. Proporsional
+ * terhadap ukuran sampel (2%, minimum 10) supaya kelas minoritas yang sah
+ * (mis. ENTER langka) tidak ditolak mentah-mentah oleh ambang absolut.
+ */
+export function minimumClassRows(sampleCount: number): number {
+  return Math.max(10, Math.floor(sampleCount * 0.02));
+}
 
 function finiteFeature(features: Record<string, unknown>, name: LearningFeatureName): number {
   const value = Number(features[name]);
@@ -144,9 +159,10 @@ export function trainWalkForwardCandidate(examples: LearningExample[]): Learning
   const sorted = [...examples].sort((a, b) => a.capturedAt.localeCompare(b.capturedAt));
   const positiveRows = sorted.filter(example => example.label === 1).length;
   const negativeRows = sorted.length - positiveRows;
+  const minClassRows = minimumClassRows(sorted.length);
   const finalModel = fitLogisticModel(sorted);
 
-  if (positiveRows < MIN_CLASS_ROWS || negativeRows < MIN_CLASS_ROWS) {
+  if (positiveRows < minClassRows || negativeRows < minClassRows) {
     return {
       model: finalModel,
       metrics: {
@@ -156,6 +172,7 @@ export function trainWalkForwardCandidate(examples: LearningExample[]): Learning
         brierScore: 1,
         positiveRows,
         negativeRows,
+        positiveRate: positiveRows / sorted.length,
       },
       eligibleForActivation: false,
       gateReason: 'INSUFFICIENT_CLASS_DIVERSITY',
@@ -201,6 +218,7 @@ export function trainWalkForwardCandidate(examples: LearningExample[]): Learning
       brierScore,
       positiveRows,
       negativeRows,
+      positiveRate: positiveRows / sorted.length,
     },
     eligibleForActivation,
     gateReason: eligibleForActivation ? 'WALK_FORWARD_GATES_PASSED' : 'WALK_FORWARD_GATES_NOT_PASSED',
@@ -223,7 +241,12 @@ export function applyLearningModel(
   if (hardSafetyReasons.has(baseline.reasonCode)) return baseline;
 
   const probability = predictLPBeatsHold(model, baseline.features);
-  const enter = probability >= model.decisionThreshold;
+  // Model dilatih pada edge BRUTO vs HOLD; biaya lifecycle diterapkan di sini
+  // agar keputusan tetap layak secara ekonomi: net edge (predictedNetEdge7d =
+  // gross - cost) harus melewati ambang minimum actionable.
+  const predictedNetEdgeUsd = Number(baseline.features.predictedNetEdge7d ?? 0);
+  const economicallyActionable = predictedNetEdgeUsd >= MINIMUM_ACTIONABLE_EDGE_USD;
+  const enter = probability >= model.decisionThreshold && economicallyActionable;
   const distance = Math.abs(probability - model.decisionThreshold);
   const confidence = distance >= 0.25 ? 'high' : distance >= 0.1 ? 'medium' : 'low';
 
@@ -233,13 +256,16 @@ export function applyLearningModel(
     action: enter ? 'ENTER_FULL_RANGE' : 'WAIT',
     reasonCode: enter ? 'LEARNING_MODEL_ENTER' : 'LEARNING_MODEL_WAIT',
     confidence,
-    rationale: `Model walk-forward memperkirakan peluang LP mengalahkan HOLD ${(probability * 100).toFixed(1)}% (threshold ${(model.decisionThreshold * 100).toFixed(1)}%).`,
+    rationale: economicallyActionable
+      ? `Model walk-forward memperkirakan peluang LP mengalahkan HOLD ${(probability * 100).toFixed(1)}% (threshold ${(model.decisionThreshold * 100).toFixed(1)}%); net edge $${predictedNetEdgeUsd.toFixed(2)} melewati ambang $${MINIMUM_ACTIONABLE_EDGE_USD.toFixed(2)} setelah biaya lifecycle.`
+      : `Model walk-forward memperkirakan peluang LP mengalahkan HOLD ${(probability * 100).toFixed(1)}%, namun net edge $${predictedNetEdgeUsd.toFixed(2)} tidak menutup biaya lifecycle dan ambang $${MINIMUM_ACTIONABLE_EDGE_USD.toFixed(2)}.`,
     features: {
       ...baseline.features,
       baselineAction: baseline.action,
       learningModelVersion: modelVersion,
       learningProbability: probability,
       learningThreshold: model.decisionThreshold,
+      learningNetEdgeUsd: predictedNetEdgeUsd,
     },
   };
 }

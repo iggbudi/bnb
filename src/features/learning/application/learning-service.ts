@@ -92,6 +92,10 @@ export class LearningService {
   getStatus() {
     const examples = this.dependencies.store.getLearningExamples();
     const latestModel = this.dependencies.store.getLatestModel();
+    const positiveRate =
+      latestModel && latestModel.positiveRows + latestModel.negativeRows > 0
+        ? latestModel.positiveRows / (latestModel.positiveRows + latestModel.negativeRows)
+        : null;
     return {
       trainerEnabled: true,
       examples: examples.length,
@@ -99,6 +103,7 @@ export class LearningService {
       progressPercent: Math.min(100, (examples.length / MIN_TRAINING_ROWS) * 100),
       activeModel: this.getLifecycleCompatibleActiveModel(),
       latestModel,
+      positiveRate,
       nextTrainingAtRows: latestModel
         ? latestModel.trainingRows + RETRAIN_EVERY_NEW_OUTCOMES
         : MIN_TRAINING_ROWS,
@@ -107,6 +112,7 @@ export class LearningService {
         improvementOverBaselinePercent: 2,
         maximumBrierScore: 0.25,
         minimumClassRows: 10,
+        minimumClassRowsFormula: 'max(10, 2% sampel)',
         retrainEveryNewOutcomes: RETRAIN_EVERY_NEW_OUTCOMES,
         verdictHorizonHours: this.dependencies.verdictHorizonHours,
         purgeRows: this.dependencies.verdictHorizonHours,

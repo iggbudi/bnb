@@ -90,45 +90,55 @@ pertahankan breakeven (V2) yang memangkas kerugian whipsaw, dengan modal segar.
 
 ---
 
-## Fase 2 — Perbaikan Pipeline Learning (independen, bisa paralel)
+## Fase 2 — Perbaikan Pipeline Learning ✅ SELESAI (commit Fase 2)
 
 **Tujuan**: mengubah learning dari "mustahil menghasilkan model" menjadi pipeline yang bisa
 mempelajari *edge bruto* dan menerapkan *biaya* saat inferensi.
 
-### 2.1 Ubah target training: gross, bukan net (fix M4+M5)
+### 2.1 Ubah target training: gross, bukan net ✅
 - **Label training** di `agent-learning-repository.getLearningExamples()`:
   `label = gross_difference_vs_hold ≥ MINIMUM_ACTIONABLE_EDGE_USD` (bukan economic).
-  Ini memakai kolom yang sudah ada (`gross_difference_vs_hold` dari `paper_agent_outcome_interpretations`),
-  dan menciptakan kelas positif nyata (73% sampel 168h gross-positive per evaluasi 3 Agu).
-- **Inferensi** di `applyLearningModel`: keputusan ENTER hanya jika
-  `predictedGrossEdge − totalLifecycleCostUsd ≥ MINIMUM_ACTIONABLE_EDGE_USD` —
-  biaya lifecycle dihitung dari fitur `predictedLifecycleCostUsd` yang sudah ada di features.
-  Dengan ini kebenaran ekonomi dipertahankan, tapi model punya sinyal untuk belajar.
-- **Sampel ENTER lama** (M5): keluarkan pengecualian `DIAGNOSTIC_EARLY` hanya untuk sampel
-  pra-`lifecycle-v2.1` bila *gross* outcomes-nya tersedia; pertimbangkan memasukkan mereka sbg
-  training dengan catatan accounting yang berbeda — keputusan saat implementasi (dokumentasikan).
+  Data nyata 17 Agu: **159/391 (40,7%) positif** (sebelumnya 0/391 — degenerasi M4).
+- **Inferensi** di `applyLearningModel`: gate biaya lifecycle — ENTER hanya bila
+  `predictedNetEdge7d ≥ MINIMUM_ACTIONABLE_EDGE_USD` (net = gross − cost, dihitung dari fitur
+  yang sudah ada). Kebenaran ekonomi dipertahankan; hard safety (LIFECYCLE_EDGE_TOO_LOW) tetap
+  dijaga. Konstanta ambang dimirror lokal agar edge runtime `learning → paper-agent` tidak
+  terbentuk (graf dependensi runtime harus asiklik — `src/architecture.test.ts`).
+- **Sampel ENTER lama** (M5): TIDAK dimasukkan — keputusan terdokumentasi: semua 31 ENTER
+  adalah `DIAGNOSTIC_EARLY` (accounting pra-`lifecycle-v2.1`), dan gross edge-nya juga dominan
+  negatif/nol; memasukkannya menambah noise tanpa menambah kelas positif yang sah.
 
-### 2.2 Gate klasifikasi yang lebih adil (fix M4)
+### 2.2 Gate klasifikasi yang lebih adil ✅
+- `minimumClassRows(n) = max(10, floor(2% × n))` — proporsional, bukan absolut 10;
+  metrik `positiveRate` ditambahkan ke walk-forward metrics & status learning.
+- **Hasil validasi data nyata (17 Agu, 391 sampel)**: gate keragaman **LOLOS** (159/232),
+  namun **walk-forward gate menolak jujur**: accuracy 40,1% vs baseline 59,2%, brier 0,49 →
+  fitur saat ini belum memprediksi edge gross lebih baik dari mayoritas (WAIT).
+  Ini adalah hasil pipeline yang benar: label tidak lagi degenerasi, metrik kelas terlihat,
+  dan penolakan terdokumentasi (sesuai DoD Fase 2).
 - `MIN_CLASS_ROWS=10` absolut → proporsional (mis. `max(10, 2% sampel)`), agar gate tidak menolak
   kelas minoritas kecil tapi sah; pertahankan `WALK_FORWARD_GATES` (accuracy ≥ baseline + 2pp, brier < 0.25).
 - Tambah metrik `positiveRate` di status learning utk visibilitas distribusi kelas.
 
-### 2.3 Opsional — skala modal simulasi (keputusan user)
+### 2.3 Opsional — skala modal simulasi (keputusan user) ⏳ DITUNDA
 - Gas BSC (~$2,8) mendominasi $100 → secara ekonomi *tidak ada* entry yang layak (M6). Opsi:
   - (a) naikkan `initialCapitalUsd` paper agent ke $1000 (gas jadi ~0,3%),
   - (b) pertahankan $100 dan terima verdict "never enter" sbg hasil yang benar,
   - (c) hitung biaya sebagai persentase (bukan USD absolut) — mengubah semantik `MINIMUM_ACTIONABLE_EDGE_USD`.
-- Rekomendasi: (a) dengan label berbasis persentase, + catatan bahwa hasil tidak bisa dibandingkan
-  langsung dgn riwayat $100.
+- Rekomendasi awal: (a). **Keputusan ditunda** — melihat hasil walk-forward (fitur belum
+  memprediksi gross edge), menaikkan modal saja tidak akan membuat model lolos; prioritas
+  berikutnya adalah fitur/feed (Fase 3) bukan skala modal.
 
-### 2.4 Tes
-- Learning-model.test.ts: (a) distribusi kelas seimbang sintetis → gate pass; (b) semua-satu-kelas →
-  tetap REJECTED dgn alasan jelas; (c) inferensi gross−cost → keputusan ENTER/WAIT benar;
-  (d) `getLearningExamples()` label gross di integration test.
-- Regresi: `npm run check` penuh.
+### 2.4 Tes ✅
+- Learning-model.test.ts: gate proporsional (sparse → REJECTED, diverse → lolos keragaman),
+  positiveRate, inferensi cost gate (net < ambang → WAIT, net ≥ ambang → ENTER).
+- agent-store.test.ts: interpretation gross positif + economic negatif → label 1 (membuktikan
+  label gross).
+- Regresi: suite penuh **193 hijau**, lint/build/prettier bersih.
 
-**Done**: setidaknya 1 model berhasil melalui walk-forward gate dgn data nyata ATAU gate menolak dgn
-alasan yang didokumentasikan + metrik kelas terlihat di status.
+**Done (per 17 Agu)**: label tidak lagi degenerasi (40,7% positif), gate proporsional, metrik
+kelas terlihat; walk-forward menolak model dengan alasan terdokumentasi (fitur belum cukup) —
+sesuai klausa DoD.
 
 ---
 
@@ -164,8 +174,8 @@ Tidak mem-block Fase 1–2; hasil Fase 1 harus divalidasi ulang setelah 3.1–3.
 ```
 Fase 0 (guardrail + pause)  ──►  Fase 1 (v1.1 backtest) → GATE REJECTED, forward tidak diluncurkan
         │
-        └─► Fase 2 (learning)   ── BERIKUTNYA (independen, prioritas sekarang)
-        └─► Fase 3 (feed)       ── prasyarat eksperimen directional berikutnya
+        └─► Fase 2 (learning)   ── SELESAI: label gross + gate proporsional + cost-aware
+        └─► Fase 3 (feed)       ── berikutnya; prasyarat eksperimen directional & model LP
         └─► Fase 4 (ops/UI)     ── setelah Fase 0
 ```
 
@@ -174,8 +184,9 @@ Fase 0 (guardrail + pause)  ──►  Fase 1 (v1.1 backtest) → GATE REJECTED,
 1. ✅ Tidak ada lagi kerugian paper yang berjalan tanpa guardrail (circuit breaker aktif).
 2. ✅ Eksperimen directional berikutnya divalidasi walk-forward dua window dgn kriteria tertulis —
    **v1.1 REJECTED, tidak diluncurkan**; keluarga v1.0 ditutup, menunggu Fase 3 + sinyal baru.
-3. ⏳ Learning punya label yang bisa dipelajari (gross + biaya di inferensi), gate proporsional,
-   dan metrik kelas terlihat — **Fase 2 = prioritas berikutnya**.
+3. ✅ Learning punya label yang bisa dipelajari (gross + biaya di inferensi) dan gate
+   proporsional — **walk-forward menolak model dgn alasan terdokumentasi (fitur belum cukup,
+   accuracy 40,1% < baseline 59,2%)**; metrik kelas (positiveRate) terlihat di status.
 4. ⏳ Semua angka divalidasi ulang dengan feed high/low & funding (Fase 3).
 5. ✅ `npm run check` hijau; docs sinkron; setiap fase = 1 commit dengan pesan jelas.
 

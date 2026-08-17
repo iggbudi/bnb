@@ -82,7 +82,7 @@ export class AgentLearningRepository extends AgentReflectionRepository {
         d.created_at AS captured_at,
         d.action AS baseline_action,
         d.features_json,
-        i.economic_difference_vs_hold,
+        i.gross_difference_vs_hold,
         i.minimum_actionable_edge_usd
       FROM paper_agent_outcomes o
       JOIN paper_agent_decisions d ON d.id = o.decision_id
@@ -99,7 +99,10 @@ export class AgentLearningRepository extends AgentReflectionRepository {
       return {
         capturedAt: String(row.captured_at),
         features,
-        label: Number(row.economic_difference_vs_hold) >= Number(row.minimum_actionable_edge_usd) ? 1 : 0,
+        // Label berbasis edge BRUTO vs HOLD (sebelum biaya lifecycle). Biaya
+        // lifecycle diterapkan saat inferensi (applyLearningModel) agar model
+        // punya kelas yang bisa dipelajari; verdict ekonomi tetap dipertahankan.
+        label: Number(row.gross_difference_vs_hold) >= Number(row.minimum_actionable_edge_usd) ? 1 : 0,
         baselineAction: (storedBaselineAction === 'WAIT' || storedBaselineAction === 'ENTER_FULL_RANGE'
           ? storedBaselineAction
           : String(row.baseline_action)) as PaperAgentAction,

@@ -8,7 +8,8 @@
 >
 > **Status tindak lanjut**: implementasi rekomendasi di [`agent-evaluation-plan.md`](agent-evaluation-plan.md).
 > Fase 0 (guardrail + pause) selesai 17 Agu (commit `d5ccf06`); Fase 1 (v1.1 long-only) **REJECTED**
-> oleh gate backtest — lihat [`fwdrun.md`](fwdrun.md) §7. Directional tetap PAUSED.
+> oleh gate backtest — lihat [`fwdrun.md`](fwdrun.md) §7; Fase 2 (learning: label gross + gate
+> proporsional + inferensi cost-aware) selesai 17 Agu. Directional tetap PAUSED.
 
 ---
 
