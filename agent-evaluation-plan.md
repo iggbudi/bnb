@@ -54,32 +54,37 @@
 
 ---
 
-## Fase 1 — Eksperimen Directional v1.1: LONG-only + Breakeven (setelah Fase 0)
+## Fase 1 — Eksperimen Directional v1.1: LONG-only + Breakeven ✅ SELESAI — GATE REJECTED
 
 **Tujuan**: uji hipotesis *baru* — bukan tuning: buang sisi SHORT yang terbukti rusak (M3),
 pertahankan breakeven (V2) yang memangkas kerugian whipsaw, dengan modal segar.
 
-### 1.1 Backtest validasi v1.1 (sebelum forward)
-- Skrip `run/backtest-variants.ts` diperluas: varian **v1.1 = breakeven ON + short OFF**
-  (dan varian kontrol v1.1+slope-EMA utk perbandingan).
-- Window evaluasi **dua-duanya**: 18–26 Jul (backtest window) dan 26 Jul–17 Agu (forward window),
-  plus out-of-sample 17 Agu–sekarang bila data cukup.
-- Kriteria kelayakan forward (harus terpenuhi SEMUA):
-  - Return window forward ≥ baseline −12,6% **dan** window backtest ≥ 0
-  - MaxDD ≤ 12%
-  - Trades ≥ 20 per window (hindari overfit sampel kecil seperti V5)
+### 1.1 Backtest validasi v1.1 ✅
+- `run/backtest-variants.ts` diperluas: opsi `shortEnabled` + `maxDrawdownHaltPercent`;
+  window forward diperpanjang ke 17 Agu; varian v1.1 (+halt 20/25%), kontrol Baseline/V2/V4.
+- Hasil lengkap di [`fwdrun.md`](fwdrun.md) §7. Ringkas:
 
-### 1.2 Forward v1.1
-- Run baru `FORWARD` modal $50: config `opposingExitAtBreakeven=true`, `directionalShortEnabled=false`,
-  `directionalMaxDrawdownPercent=20`.
-- Jadwal evaluasi: **mingguan**, dengan kriteria lanjut/henti tertulis:
-  - HENTI jika equity < $40 (−20%) atau maxDD ≥ 20% (guardrail Fase 0) → otomatis HALTED.
-  - LANJUT jika setelah 2 minggu equity ≥ $50 dan win rate ≥ 25%.
-- Catatan di fwdrun.md tiap evaluasi.
+| Kriteria kelayakan | Target | v1.1 aktual | Status |
+|---|---|---|---|
+| Return window backtest | ≥ 0% | **−4,51%** | ❌ |
+| Return window forward | ≥ −12,6% | **−20,54%** | ❌ |
+| MaxDD ≤ 12% | ≤ 12% | 23,0% | ❌ |
+| Trades ≥ 20/window | ≥ 20 | **14** (backtest) | ❌ |
 
-### 1.3 Yang TIDAK dilakukan di Fase 1
-- Tidak ada tuning momentum/EMA/RSI (V3–V6 sudah membuktikan non-linear & overfit-prone).
-- Tidak ada aktivasi live execution.
+- **Verdict: REJECTED — run forward v1.1 TIDAK diluncurkan.** Long-only memperbaiki win rate
+  (9,5% → 43,6%) dan fee ($14,48 → $4,87) tetapi kebocoran pindah ke STOP_LOSS (18× −$19,32
+  di forward): sinyal entry tetap tanpa edge.
+
+### 1.2 Keputusan strategis
+- Keluarga `directional-momentum-v1.0` **dinyatakan tidak layak** di semua konfigurasi (30 hari,
+  range & tren). Tidak ada varian parameter berikutnya.
+- Directional tetap PAUSED; guardrail Fase 0 tetap aktif untuk eksperimen masa depan.
+- Prasyarat eksperimen berikutnya: Fase 3 (feed intramenit + funding/mark) DAN hipotesis sinyal
+  baru — bukan tuning.
+- Prioritas pindah ke **Fase 2 (learning paper agent)** yang independen.
+
+### 1.3 Yang TIDAK dilakukan
+- Tidak ada tuning momentum/EMA/RSI; tidak ada aktivasi live execution; kill switch tetap LOCKED.
 
 **Done**: backtest v1.1 terdokumentasi; run forward v1.1 aktif dgn guardrail; evaluasi mingguan terjadwal.
 
@@ -154,32 +159,32 @@ Tidak mem-block Fase 1–2; hasil Fase 1 harus divalidasi ulang setelah 3.1–3.
 
 ---
 
-## Urutan & Dependensi
+## Urutan & Dependensi (per 17 Agu 2026)
 
 ```
-Fase 0 (guardrail + pause)  ──►  Fase 1 (v1.1 backtest → forward)
-        │                            └─► evaluasi mingguan → lanjut/henti
-        └─► Fase 2 (learning)   ── paralel, independen
-        └─► Fase 3 (feed)       ── paralel, scope besar, tidak blocking
+Fase 0 (guardrail + pause)  ──►  Fase 1 (v1.1 backtest) → GATE REJECTED, forward tidak diluncurkan
+        │
+        └─► Fase 2 (learning)   ── BERIKUTNYA (independen, prioritas sekarang)
+        └─► Fase 3 (feed)       ── prasyarat eksperimen directional berikutnya
         └─► Fase 4 (ops/UI)     ── setelah Fase 0
 ```
 
-## Definition of Done (keseluruhan)
+## Definition of Done (keseluruhan, status per 17 Agu 2026)
 
-1. Tidak ada lagi kerugian paper yang berjalan tanpa guardrail (circuit breaker aktif).
-2. Eksperimen directional berikutnya memakai hipotesis yang berbeda (long-only), divalidasi
-   walk-forward dua window, dengan kriteria lanjut/henti tertulis.
-3. Learning punya label yang bisa dipelajari (gross + biaya di inferensi), gate proporsional,
-   dan metrik kelas terlihat — berhenti menghasilkan model "semua negatif".
-4. Semua angka divalidasi ulang dengan feed yang menyertakan high/low & funding (Fase 3).
-5. `npm run check` hijau; docs sinkron; setiap fase = 1 commit dengan pesan jelas.
+1. ✅ Tidak ada lagi kerugian paper yang berjalan tanpa guardrail (circuit breaker aktif).
+2. ✅ Eksperimen directional berikutnya divalidasi walk-forward dua window dgn kriteria tertulis —
+   **v1.1 REJECTED, tidak diluncurkan**; keluarga v1.0 ditutup, menunggu Fase 3 + sinyal baru.
+3. ⏳ Learning punya label yang bisa dipelajari (gross + biaya di inferensi), gate proporsional,
+   dan metrik kelas terlihat — **Fase 2 = prioritas berikutnya**.
+4. ⏳ Semua angka divalidasi ulang dengan feed high/low & funding (Fase 3).
+5. ✅ `npm run check` hijau; docs sinkron; setiap fase = 1 commit dengan pesan jelas.
 
 ## Risiko
 
 | Risiko | Mitigasi |
 |---|---|
-| v1.1 (long-only) juga rugi | Kriteria henti ketat (−20%), evaluasi mingguan, modal paper |
-| Overfit v1.1 ke periode range | Wajib ≥20 trade/window + dua window berbeda |
+| ~~v1.1 (long-only) juga rugi~~ → TERJADI | Kriteria gate menolak v1.1 (−20,5% forward); forward tidak diluncurkan |
+| ~~Overfit v1.1~~ → TERJADI (14 trade backtest) | Wajib ≥20 trade/window + dua window; v1.1 gagal kriterium trade |
 | Label gross menyesatkan (entry tak layak) | Biaya tetap diterapkan di inferensi; verdict ekonomi tidak berubah |
 | Feed Fase 3 mengubah angka lama | Semua dokumen menandai "per 17 Agu, close-only" |
-| Perubahan schema (status HALTED) | Migration versioned + backup pre-migration (pola backup saat ini) |
+| Perubahan schema (status run) | Status PAUSED sudah ada di schema — tanpa migration baru |

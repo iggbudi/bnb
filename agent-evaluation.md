@@ -5,6 +5,10 @@
 > Data: `data/bnb-viewer.sqlite` per 2026-08-17T23:02Z (run forward masih ACTIVE).
 > Execution tetap `LOCKED` (kill switch engaged) — seluruh hasil adalah paper/simulasi, tanpa uang nyata.
 > Dokumen ini memperbarui dan melampaui [`paper-trading-results.md`](paper-trading-results.md) (per 3 Agu) dan [`fwdrun.md`](fwdrun.md) (per 3 Agu).
+>
+> **Status tindak lanjut**: implementasi rekomendasi di [`agent-evaluation-plan.md`](agent-evaluation-plan.md).
+> Fase 0 (guardrail + pause) selesai 17 Agu (commit `d5ccf06`); Fase 1 (v1.1 long-only) **REJECTED**
+> oleh gate backtest — lihat [`fwdrun.md`](fwdrun.md) §7. Directional tetap PAUSED.
 
 ---
 

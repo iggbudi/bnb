@@ -230,3 +230,71 @@ Skrip: `run/backtest-variants.ts` (folder `run/` di-gitignore).
   (saat ini default `false`).
 - Verifikasi: 2 tes baru (default market exit vs breakeven exit), seluruh suite 186 tes lolos,
   lint + build bersih.
+
+---
+
+## 7. Fase 1 — Backtest v1.1 (breakeven + long-only), 17 Agu 2026
+
+> Keputusan gate Fase 1 (dari `agent-evaluation-plan.md`): **v1.1 GAGAL kriteria kelayakan —
+> run forward TIDAK diluncurkan.** Data: `data/bnb-viewer.sqlite` per 2026-08-17T23:29Z.
+> Harness: `run/backtest-variants.ts` (validasi baseline reproduksi angka live persis).
+
+### 7.1 Konteks
+
+Evaluasi 30 hari (`agent-evaluation.md`) menyimpulkan SHORT merugi di semua rezim
+(forward run 2: SHORT −$5,39 vs LONG −$0,88 pasca-3 Agu). Hipotesis v1.1: buang sisi SHORT
+(`shortEnabled=false`) sambil mempertahankan exit breakeven (V2), modal baru $50.
+
+### 7.2 Hasil
+
+**Window BACKTEST (18–26 Jul, sama dengan run 1):**
+
+| Varian | Return | MaxDD | Trades | Win rate | Realized | Fee |
+|---|---|---|---|---|---|---|
+| Baseline | −12,56% | 15,0% | 40 | 32,5% | −$6,28 | $5,10 |
+| V2 breakeven | −4,77% | 8,6% | 40 | 15,0% | −$2,38 | $5,28 |
+| **v1.1 long-only** | **−4,51%** | **9,6%** | **14** | 50,0% | −$2,25 | $1,85 |
+
+**Window FORWARD (26 Jul – 17 Agu, sama dengan run 2):**
+
+| Varian | Return | MaxDD | Trades | Win rate | Realized | Fee |
+|---|---|---|---|---|---|---|
+| Baseline | −39,17% | 40,3% | 116 | 27,6% | −$19,48 | $12,81 |
+| V2 breakeven | −22,07% | 23,5% | 116 | 9,5% | −$10,91 | $14,48 |
+| **v1.1 long-only** | **−20,54%** | **23,0%** | 39 | 43,6% | −$10,27 | $4,87 |
+| v1.1 + halt 20% | −18,81% | 20,1% | 35 | 42,9% | −$9,41 | $4,43 |
+
+### 7.3 Evaluasi terhadap kriteria kelayakan (harus SEMUA terpenuhi)
+
+| Kriteria | Target | v1.1 aktual | Status |
+|---|---|---|---|
+| Return window backtest | ≥ 0% | **−4,51%** | ❌ |
+| Return window forward | ≥ −12,6% | **−20,54%** | ❌ |
+| MaxDD ≤ 12% | ≤ 12% | 23,0% (forward) | ❌ |
+| Trades ≥ 20/window | ≥ 20 | **14** (backtest) | ❌ |
+
+**Verdict: REJECTED — semua kriteria gagal. Run forward v1.1 tidak diluncurkan.**
+
+### 7.4 Diagnosis
+
+1. **Long-only membantu tapi tidak cukup.** vs V2 (short ON): forward −22,07% → −20,54%,
+   win rate 9,5% → 43,6%, fee $14,48 → $4,87. SHORT memang penguras fee — tetapi membuang SHORT
+   saja tidak menciptakan edge.
+2. **Kebocoran pindah dari whipsaw ke STOP_LOSS.** Dengan exit breakeven, `OPPOSING_SIGNAL` tidak
+   lagi rugi pasar; posisi bertahan sampai SL tersentuh: forward v1.1 = **18× STOP_LOSS −$19,32**
+   (dominasi). Entry momentum terjadi di ekstrem lokal → SL volatilitas tersentuh pada pullback.
+3. **Trade berkurang drastis (116 → 39) tapi tetap negatif** — bukan masalah frekuensi; sinyal entry
+   tidak punya predictive edge (sama seperti kesimpulan fwdrun.md §4 dan evaluasi 30 hari).
+4. **Kesimpulan:** keluarga strategi `directional-momentum-v1.0` (entry EMA/momentum/RSI + TP/SL
+   volatilitas + trailing) **tidak menunjukkan edge di konfigurasi mana pun** selama 30 hari,
+   di pasar range maupun tren. Eksperimen parameter tambahan dihentikan (sesuai rekomendasi
+   `agent-evaluation.md` §6.2).
+
+### 7.5 Tindak lanjut
+
+- Directional tetap PAUSED (`DIRECTIONAL_PAPER_ENABLED=false`), guardrail Fase 0 aktif
+  (circuit breaker 25%, long-only siap via env).
+- Eksperimen directional berikutnya **tidak** boleh berupa varian parameter lagi; prasyaratnya:
+  (a) feed high/low intramenit + funding/mark perp nyata (Fase 3) untuk memvalidasi ulang
+  TP/SL/slippage yang saat ini hanya close-per-menit, dan (b) hipotesis sinyal yang berbeda.
+- Prioritas berpindah ke Fase 2 (perbaikan pipeline learning paper agent) yang independen.
