@@ -119,6 +119,16 @@ Database default:
 data/bnb-viewer.sqlite
 ```
 
+> **Snapshot portabel (18 Agu 2026):** `data/bnb-viewer.sqlite` (±92 MB) di-track di git agar
+> dapat dijalankan di server lain. Saat menyalin snapshot:
+>
+> 1. Hentikan service dulu, lalu jalankan `PRAGMA wal_checkpoint(TRUNCATE)` agar WAL di-absorb
+>    ke file utama; jangan pernah menyalin `-wal`/`-shm` yang sedang aktif.
+> 2. Di server baru: `cp data/bnb-viewer.sqlite <tujuan>` + `.env` dari `.env.example`
+>    (`SQLITE_PATH=data/bnb-viewer.sqlite`); `npm ci && npm run build && npm start`.
+> 3. Catatan: tidak ada private key/token di DB (execution kosong, kill switch LOCKED);
+>    `OPENAI_API_KEY` dibutuhkan hanya untuk refleksi AI paper agent.
+
 Snapshot memiliki unique key per menit. Request berulang dalam menit yang sama melakukan upsert, bukan membuat duplikat.
 
 Backup default:
